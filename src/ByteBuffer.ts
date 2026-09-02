@@ -166,7 +166,7 @@ export class ByteBuffer extends Buffer {
     }
 
     public static alloc(size: number): ByteBuffer {
-        const buffer = Buffer.alloc(size);
+        const buffer = Buffer.allocUnsafe(size);
         return this.promote(buffer);
     }
 }

@@ -5,7 +5,7 @@ function buf(len: number): ByteBuffer {
     return ByteBuffer.alloc(len);
 }
 
-function nsign(value: number | bigint): number {
+function _sign(value: number | bigint): number {
     if (typeof value === "bigint")
         return value < 0n ? -1 : value > 0n ? 1 : 0;
 
@@ -110,7 +110,7 @@ function encodeInteger(integer: number | bigint): Buffer {
         return m;
     }
 
-    const sign = nsign(integer);
+    const sign = _sign(integer);
     if (sign === 1)
         return encodePositiveInteger(integer);
 
@@ -123,13 +123,13 @@ function encodeInteger(integer: number | bigint): Buffer {
 function encodeFloat(float: number): Buffer {
     //Wenn fround(64bit number) === 32 number, dann passt x in 32bits IEEE-754
     if (Math.fround(float) === float) {
-        const buf = Buffer.alloc(5);
+        const buf = ByteBuffer.alloc(5);
         buf[0] = TAGS.F32;
         buf.writeFloatBE(float, 1);
         return buf;
     }
 
-    const buf = Buffer.alloc(9);
+    const buf = ByteBuffer.alloc(9);
     buf[0] = TAGS.F64;
     buf.writeDoubleBE(float, 1);
     return buf;

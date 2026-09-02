@@ -1,5 +1,5 @@
 import {ByteBufferStream} from "./ByteBuffer";
-import {TAGS} from "./Constants";
+import {FlAGS, GLORP_MAGIC, ShapeNode, StringifiedShape, TAGS} from "./Constants";
 import {decodeNumber} from "./Decoders/NumberDecoder";
 import {decodeString} from "./Decoders/StringDecoder";
 import {decodeBoolean} from "./Decoders/BooleanDecoder";
@@ -7,7 +7,49 @@ import {decodeAbsence} from "./Decoders/AbsenceDecoder";
 import {decodeDate} from "./Decoders/DateDecoder";
 
 export class Decoder {
+    private shapes: ShapeNode[] = [];
+    private strings: string[] = [];
+
     public constructor(private stream: ByteBufferStream) {
+    }
+
+    private rehydrateShape(shape: ShapeNode, values: unknown): unknown {
+        let shapeIndex = 0;
+        let valueIndex = 0;
+
+        const result: Record<string, unknown> = {};
+        //Test here first, since at the top level, every shape is an array at least once
+        if (!Array.isArray(shape))
+            throw new Error("Invalid shape.");
+
+        while (shapeIndex < shape.length) {
+            const key = shape[shapeIndex];
+
+            if (typeof key !== "string")
+                throw new Error("Invalid key.");
+
+            const maybeNextShape = shape[shapeIndex + 1];
+
+            let value: unknown;
+            if (Array.isArray(values))
+                value = values[valueIndex];
+            else
+                value = (values as Record<string, unknown>)[key];
+
+            //If our next shape is an array, it must be a nested record's keys
+            if (Array.isArray(maybeNextShape)) {
+                result[key] = this.rehydrateShape(maybeNextShape, value);
+                shapeIndex += 2;
+            } else {
+                //If it isn't, it's a property, so apply the value to it
+                result[key] = value;
+                shapeIndex++;
+            }
+
+            valueIndex++;
+        }
+
+        return result;
     }
 
     private decodeNumber() {
@@ -80,7 +122,7 @@ export class Decoder {
         const values: unknown[] = [];
 
         for (let i = 0; i < elementCount; i++) {
-            values.push(this._DecodeUnknown());
+            values.push(this.decodeUnknown());
         }
 
         return values;
@@ -128,12 +170,42 @@ export class Decoder {
 
         for (let i = 0; i < entryCount; i++) {
             const key = this.decodeString();
-            const value = this._DecodeUnknown();
+            const value = this.decodeUnknown();
 
             record[key] = value;
         }
 
         return record;
+    }
+
+    private decodeStringReference() {
+        this.stream.skip(1)
+        const {value: index, bytesRead} = decodeNumber(this.stream.peekSlice());
+        this.stream.skip(bytesRead);
+
+        return this.strings[Number(index)];
+    }
+
+    private decodeShapeReference() {
+        this.stream.skip(1);
+
+        const indexResult = decodeNumber(this.stream.peekSlice());
+        this.stream.skip(indexResult.bytesRead);
+
+        const countResult = decodeNumber(this.stream.peekSlice());
+        this.stream.skip(countResult.bytesRead);
+
+        const shape = this.shapes[Number(indexResult.value)];
+        if (!shape)
+            throw new Error(`No such shape ${indexResult.value}`);
+
+        const values: unknown[] = [];
+
+        for (let i = 0; i < Number(countResult.value); i++) {
+            values.push(this.decodeUnknown());
+        }
+
+        this.rehydrateShape(shape, values);
     }
 
     private decodeDate() {
@@ -145,9 +217,10 @@ export class Decoder {
         return value;
     }
 
-    private _DecodeUnknown(): unknown {
+    private decodeUnknown(): unknown {
         const tag = this.stream.peekByte() as TAGS;
-        console.log(`TAG: ${TAGS[tag]}`);
+
+        console.log(TAGS[tag]);
 
         if (tag >= TAGS.PI && tag <= TAGS.F64) {
             return this.decodeNumber();
@@ -177,17 +250,72 @@ export class Decoder {
             return this.decodeDate();
         }
 
-        throw new Error(`Unrecognized tag: ${tag}`);
+        if (tag === TAGS.SP_SHAPE_REF) {
+            return this.decodeShapeReference();
+        }
+
+        if (tag === TAGS.SP_STRING_REF) {
+            return this.decodeStringReference();
+        }
+
+        throw new Error(`Unrecognized tag: ${tag} / ${TAGS[tag]}`);
     }
 
-    public Decode(): unknown[] {
+    public Decode<T = unknown>(): T {
         const elements: unknown[] = [];
 
+        //Read header
+        if (this.stream.peekByte() !== GLORP_MAGIC)
+            throw new Error("No magic number.");
+        this.stream.skip(1);
+
+        /*
+            Buffer.of(GLORP_MAGIC),
+            Buffer.of(flagsByte),
+            Buffer.concat(tables),
+            payload
+        */
+
+        const flags = this.stream.peekByte();
+        this.stream.skip(1);
+
+        const hasShapeTable = (flags & FlAGS.TAB_SHAPES) !== 0;
+        const hasStringTable = (flags & FlAGS.TAB_STRINGS) !== 0;
+
+        if (hasShapeTable || hasStringTable)
+            if (!(
+                this.stream.peekByte() === TAGS.ARR8 ||
+                this.stream.peekByte() === TAGS.ARR16 ||
+                this.stream.peekByte() === TAGS.ARR24 ||
+                this.stream.peekByte() === TAGS.ARR32
+            ))
+                throw new Error("Expected a table.");
+
+        if (hasShapeTable) {
+            //Parse shapes
+            const decodedShapeArray = this.decodeArray() as StringifiedShape[];
+            for (const decodedShape of decodedShapeArray) {
+                this.shapes.push(JSON.parse(decodedShape));
+            }
+        }
+
+        if (hasStringTable) {
+            //Parse shapes
+            const decodedStringArray = this.decodeArray() as string[];
+            for (const decodedString of decodedStringArray) {
+                this.strings.push(decodedString);
+            }
+        }
+
+        //Start parsing everything else
         while (!this.stream.eof) {
-            const value = this._DecodeUnknown();
+            const value = this.decodeUnknown();
             elements.push(value);
         }
 
-        return elements;
+        if (elements.length === 0)
+            throw new Error("Unable to decode.")
+
+        return (elements.length > 1 ? elements : elements[0]) as T;
     }
 }

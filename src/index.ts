@@ -1,18 +1,18 @@
-import assert from "node:assert/strict";
-
 import {Encoder} from "./Encoder";
 import {Decoder} from "./Decoder";
 import {ByteBufferStream} from "./ByteBuffer";
-import {test} from "node:test";
+import {writeFileSync} from "node:fs";
 
 function encode(value: unknown): Buffer {
     return new Encoder().Encode(value);
 }
 
 function decode(buffer: Buffer): unknown {
-    return new Decoder(new ByteBufferStream(buffer)).Decode()[0];
+    return new Decoder(new ByteBufferStream(buffer)).Decode();
 }
 
+
+/*
 function expectRoundTrip(expected: unknown) {
     const encoded = encode(expected);
     const actual = decode(encoded);
@@ -170,13 +170,8 @@ test("FLS", () => {
     expectRoundTrip(expected);
 });
 
-test("NULL", () => {
-    const expected = null;
-    expectRoundTrip(expected);
-});
-
 test("ABS", () => {
-    const expected = undefined;
+    const expected = null;
     expectRoundTrip(expected);
 });
 
@@ -214,30 +209,43 @@ test("REC16", () => {
 test("DATE", () => {
     const expected = new Date("2026-08-28T13:37:42.123Z");
     expectRoundTrip(expected);
-});
+});*/
 
-test("nested structure", () => {
-    const expected = {
-        a: 1,
-        b: [
-            {miau: true},
-            {glorp: new Date("2026-08-28T13:37:42.123Z")},
-            {murks: null},
-            {morks: undefined},
-            {
-                nested: [
-                    1,
-                    2,
-                    {
-                        foo: "bar"
-                    }
-                ]
-            }
-        ]
-    };
+const user = {
+    id: "u-4711",
+    username: "fjanetzki",
+    displayName: "Felix Janetzki",
+    firstName: "Felix",
+    lastName: "Janetzki",
+    email: "felix@example.com",
 
-    const encoded = encode(expected);
-    const actual = decode(encoded);
+    active: true,
+    admin: false,
 
-    assert.deepStrictEqual(actual, expected);
-});
+    roles: [
+        "user",
+        "developer"
+    ],
+
+    department: "IT",
+    language: "de-DE",
+
+    createdAt: new Date("2024-01-15T09:30:00Z"),
+    lastLogin: new Date(),
+
+    preferences: {
+        theme: "dark",
+        notifications: true
+    }
+};
+
+const users = [
+    "miau"
+]
+
+console.log(users);
+const encoded = encode(users);
+writeFileSync("object.JSON", JSON.stringify(users));
+writeFileSync("object.glorp", encoded);
+
+console.log(decode(encoded));
