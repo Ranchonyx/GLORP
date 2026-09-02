@@ -1,21 +1,13 @@
-import {Encoder} from "./Encoder";
-import {Decoder} from "./Decoder";
-import {ByteBufferStream} from "./ByteBuffer";
-
 /**
  * The **`GLORP`** static class contains static methods for decoding values from and encoding values to the GLORP format
  * */
-export class GLORP {
-    static #encoder = new Encoder();
-
+export declare class GLORP {
+    #private;
     /**
      * @typeParam T - The expected return type. Not validated at runtime.
      * @param buffer - The **`GLORP`**-encoded data to decode.
      * */
-    public static decode<T = unknown>(buffer: Buffer): T {
-        return new Decoder(new ByteBufferStream(buffer)).Decode<T>();
-    }
-
+    static decode<T = unknown>(buffer: Buffer): T;
     /**
      * Encodes a supported JavaScript value into the GLORP binary format.
      *
@@ -23,7 +15,6 @@ export class GLORP {
      * Functions, symbols, classes and instances of custom classes are not supported.
      * @param data - The JavaScript value to encode.
      * */
-    public static encode(data: unknown): Buffer {
-        return this.#encoder.Encode(data);
-    }
+    static encode(data: unknown): Buffer;
 }
+//# sourceMappingURL=index.d.ts.map

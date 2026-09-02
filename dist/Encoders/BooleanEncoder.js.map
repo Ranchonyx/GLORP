@@ -1,0 +1,1 @@
+{"version":3,"file":"BooleanEncoder.js","sourceRoot":"","sources":["../../src/Encoders/BooleanEncoder.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,IAAI,EAAC,MAAM,cAAc,CAAC;AAElC,MAAM,UAAU,aAAa,CAAC,IAAa;IACvC,IAAG,IAAI;QACH,OAAO,MAAM,CAAC,EAAE,CAAC,IAAI,CAAC,GAAG,CAAC,CAAC;IAE/B,OAAO,MAAM,CAAC,EAAE,CAAC,IAAI,CAAC,GAAG,CAAC,CAAC;AAC/B,CAAC"}
