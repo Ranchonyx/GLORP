@@ -1,5 +1,6 @@
-import {ByteBuffer} from "../ByteBuffer";
-import {TAGS} from "../Constants";
+import {ByteBuffer} from "../Util/ByteBuffer.js";
+import {TAGS} from "../Util/Constants.js";
+import {InvalidBytecodeDecodeError} from "../Util/Errors.js";
 
 export function decodeNumber(buffer: ByteBuffer): { value: number | bigint, bytesRead: number } {
     const tag = buffer[0] as TAGS;
@@ -55,5 +56,5 @@ export function decodeNumber(buffer: ByteBuffer): { value: number | bigint, byte
             return ret(buffer.readDoubleBE(1), 9);
     }
 
-    throw new Error("Unable to decode number.");
+    throw new InvalidBytecodeDecodeError(`number | bigint`, buffer);
 }

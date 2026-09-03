@@ -1,1 +1,1 @@
-{"version":3,"file":"NumberDecoder.d.ts","sourceRoot":"","sources":["../../src/Decoders/NumberDecoder.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,UAAU,EAAC,MAAM,eAAe,CAAC;AAGzC,wBAAgB,YAAY,CAAC,MAAM,EAAE,UAAU,GAAG;IAAE,KAAK,EAAE,MAAM,GAAG,MAAM,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CAuD9F"}
+{"version":3,"file":"NumberDecoder.d.ts","sourceRoot":"","sources":["../../src/Decoders/NumberDecoder.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,UAAU,EAAC,MAAM,uBAAuB,CAAC;AAIjD,wBAAgB,YAAY,CAAC,MAAM,EAAE,UAAU,GAAG;IAAE,KAAK,EAAE,MAAM,GAAG,MAAM,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CAuD9F"}

@@ -1,5 +1,6 @@
-import {ByteBuffer} from "../ByteBuffer";
-import {TAGS} from "../Constants";
+import {ByteBuffer} from "../Util/ByteBuffer.js";
+import {TAGS} from "../Util/Constants.js";
+import {InvalidBytecodeDecodeError} from "../Util/Errors.js";
 
 export function decodeBoolean(buffer: ByteBuffer): { value: boolean, bytesRead: number } {
     const tag = buffer[0] as TAGS;
@@ -14,5 +15,5 @@ export function decodeBoolean(buffer: ByteBuffer): { value: boolean, bytesRead: 
             return ret(false, 1);
     }
 
-    throw new Error("Unable to decode boolean.");
+    throw new InvalidBytecodeDecodeError("boolean", buffer);
 }

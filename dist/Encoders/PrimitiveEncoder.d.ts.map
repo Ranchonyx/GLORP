@@ -1,1 +1,1 @@
-{"version":3,"file":"PrimitiveEncoder.d.ts","sourceRoot":"","sources":["../../src/Encoders/PrimitiveEncoder.ts"],"names":[],"mappings":"AAKA,wBAAgB,WAAW,CAAC,IAAI,EAAE,OAAO,GAAG,OAAO,CAWlD;AAED,wBAAgB,eAAe,CAAC,IAAI,EAAE,OAAO,GAAG,MAAM,CAWrD"}
+{"version":3,"file":"PrimitiveEncoder.d.ts","sourceRoot":"","sources":["../../src/Encoders/PrimitiveEncoder.ts"],"names":[],"mappings":"AAMA,wBAAgB,WAAW,CAAC,IAAI,EAAE,OAAO,GAAG,OAAO,CAWlD;AAED,wBAAgB,eAAe,CAAC,IAAI,EAAE,OAAO,GAAG,MAAM,CAWrD"}

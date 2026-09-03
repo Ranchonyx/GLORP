@@ -1,4 +1,4 @@
-import { ByteBufferStream } from "./ByteBuffer";
+import { ByteBufferStream } from "./Util/ByteBufferStream.js";
 export declare class Decoder {
     private stream;
     private shapes;

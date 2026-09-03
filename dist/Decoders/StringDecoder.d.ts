@@ -1,4 +1,4 @@
-import { ByteBuffer } from "../ByteBuffer";
+import { ByteBuffer } from "../Util/ByteBuffer.js";
 export declare function decodeString(buffer: ByteBuffer): {
     value: string;
     bytesRead: number;

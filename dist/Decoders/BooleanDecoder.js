@@ -1,4 +1,5 @@
-import { TAGS } from "../Constants";
+import { TAGS } from "../Util/Constants.js";
+import { InvalidBytecodeDecodeError } from "../Util/Errors.js";
 export function decodeBoolean(buffer) {
     const tag = buffer[0];
     const ret = (value, bytesRead) => {
@@ -10,6 +11,6 @@ export function decodeBoolean(buffer) {
         case TAGS.FLS:
             return ret(false, 1);
     }
-    throw new Error("Unable to decode boolean.");
+    throw new InvalidBytecodeDecodeError("boolean", buffer);
 }
 //# sourceMappingURL=BooleanDecoder.js.map

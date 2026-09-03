@@ -1,1 +1,1 @@
-{"version":3,"file":"BooleanDecoder.d.ts","sourceRoot":"","sources":["../../src/Decoders/BooleanDecoder.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,UAAU,EAAC,MAAM,eAAe,CAAC;AAGzC,wBAAgB,aAAa,CAAC,MAAM,EAAE,UAAU,GAAG;IAAE,KAAK,EAAE,OAAO,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CAcvF"}
+{"version":3,"file":"BooleanDecoder.d.ts","sourceRoot":"","sources":["../../src/Decoders/BooleanDecoder.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,UAAU,EAAC,MAAM,uBAAuB,CAAC;AAIjD,wBAAgB,aAAa,CAAC,MAAM,EAAE,UAAU,GAAG;IAAE,KAAK,EAAE,OAAO,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CAcvF"}

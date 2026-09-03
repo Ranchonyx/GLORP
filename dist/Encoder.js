@@ -1,9 +1,10 @@
-import { encodePrimitive, isPrimitive } from "./Encoders/PrimitiveEncoder";
-import { encodeDate } from "./Encoders/DateEncoder";
-import { FlAGS, GLORP_MAGIC, TAGS } from "./Constants";
-import { ByteBuffer } from "./ByteBuffer";
-import { encodeString } from "./Encoders/StringEncoder";
-import { encodeNumber } from "./Encoders/NumberEncoder";
+import { encodePrimitive, isPrimitive } from "./Encoders/PrimitiveEncoder.js";
+import { encodeDate } from "./Encoders/DateEncoder.js";
+import { FlAGS, GLORP_MAGIC, TAGS } from "./Util/Constants.js";
+import { ByteBuffer } from "./Util/ByteBuffer.js";
+import { encodeString } from "./Encoders/StringEncoder.js";
+import { encodeNumber } from "./Encoders/NumberEncoder.js";
+import { InvalidArgumentEncodeError, InvalidArgumentRangeError } from "./Util/Errors.js";
 function buf(len) {
     return ByteBuffer.alloc(len);
 }
@@ -67,7 +68,7 @@ export class Encoder {
             m.set(elementsBuffer, 5);
             return m;
         }
-        throw new Error("Unable to encode array");
+        throw new InvalidArgumentEncodeError(array);
     }
     encodeRecord(data) {
         const entries = Object.entries(data);
@@ -102,7 +103,7 @@ export class Encoder {
             header.writeUInt32BE(len, 1);
             return Buffer.concat([header, content]);
         }
-        throw new Error("Record too large");
+        throw new InvalidArgumentRangeError(data, 0xff_ff_ff_ff);
     }
     encodeUnknown(data, createStringReferences = true) {
         //Check if we need to encode a primitive first
@@ -119,14 +120,15 @@ export class Encoder {
         //If we're dealing with an array
         if (Array.isArray(data))
             return this.encodeArray(data);
-        if (typeof data === "object") {
+        const proto = Object.getPrototypeOf(data);
+        if (typeof data === "object" && (proto === null || Object.getPrototypeOf(proto) === null)) {
             const shape = JSON.stringify(this.dehydrateToShape(data));
             const shapeIndex = this.shapeIndices.get(shape);
             if (shapeIndex !== undefined)
                 return this.encodeShapeReference(data, shapeIndex);
             return this.encodeRecord(data);
         }
-        throw new Error("Unable to encode");
+        throw new InvalidArgumentEncodeError(data);
     }
     encodeShapeReference(data, index) {
         const encoded = [];

@@ -1,4 +1,5 @@
-import { TAGS } from "../Constants";
+import { TAGS } from "../Util/Constants.js";
+import { InvalidBytecodeDecodeError } from "../Util/Errors.js";
 export function decodeNumber(buffer) {
     const tag = buffer[0];
     const ret = (value, bytesRead) => {
@@ -48,6 +49,6 @@ export function decodeNumber(buffer) {
         case TAGS.F64:
             return ret(buffer.readDoubleBE(1), 9);
     }
-    throw new Error("Unable to decode number.");
+    throw new InvalidBytecodeDecodeError(`number | bigint`, buffer);
 }
 //# sourceMappingURL=NumberDecoder.js.map

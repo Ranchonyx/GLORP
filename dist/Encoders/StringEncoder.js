@@ -1,5 +1,6 @@
-import { TAGS } from "../Constants";
-import { ByteBuffer } from "../ByteBuffer";
+import { TAGS } from "../Util/Constants.js";
+import { ByteBuffer } from "../Util/ByteBuffer.js";
+import { InvalidArgumentRangeError } from "../Util/Errors.js";
 function buf(len) {
     return ByteBuffer.alloc(len);
 }
@@ -32,7 +33,7 @@ function encodeUTF8String(utf8String, len) {
         m.set(Buffer.from(utf8String, "utf8"), 5);
         return m;
     }
-    throw new Error(`Unable to encode utf-8 string ${utf8String}!`);
+    throw new InvalidArgumentRangeError(utf8String, 0xff_ff_ff_ff);
 }
 function encodeASCIIString(asciiString, len) {
     if (len <= 0xff) {
@@ -63,7 +64,7 @@ function encodeASCIIString(asciiString, len) {
         m.set(Buffer.from(asciiString, "ascii"), 5);
         return m;
     }
-    throw new Error(`Unable to encode ascii string ${asciiString}!`);
+    throw new InvalidArgumentRangeError(asciiString, 0xff_ff_ff_ff);
 }
 export function encodeString(x) {
     const byteLength = Buffer.byteLength(x);

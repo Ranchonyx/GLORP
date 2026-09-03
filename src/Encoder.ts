@@ -1,9 +1,10 @@
-import {encodePrimitive, isPrimitive} from "./Encoders/PrimitiveEncoder";
-import {encodeDate} from "./Encoders/DateEncoder";
-import {FlAGS, GLORP_MAGIC, ShapeNode, StringifiedShape, TAGS} from "./Constants";
-import {ByteBuffer} from "./ByteBuffer";
-import {encodeString} from "./Encoders/StringEncoder";
-import {encodeNumber} from "./Encoders/NumberEncoder";
+import {encodePrimitive, isPrimitive} from "./Encoders/PrimitiveEncoder.js";
+import {encodeDate} from "./Encoders/DateEncoder.js";
+import {FlAGS, GLORP_MAGIC, ShapeNode, StringifiedShape, TAGS} from "./Util/Constants.js";
+import {ByteBuffer} from "./Util/ByteBuffer.js";
+import {encodeString} from "./Encoders/StringEncoder.js";
+import {encodeNumber} from "./Encoders/NumberEncoder.js";
+import {InvalidArgumentEncodeError, InvalidArgumentRangeError} from "./Util/Errors.js";
 
 function buf(len: number): ByteBuffer {
     return ByteBuffer.alloc(len);
@@ -94,7 +95,7 @@ export class Encoder {
             return m;
         }
 
-        throw new Error("Unable to encode array");
+        throw new InvalidArgumentEncodeError(array);
     }
 
     private encodeRecord(data: Record<string, unknown>): Buffer {
@@ -143,7 +144,7 @@ export class Encoder {
             return Buffer.concat([header, content]);
         }
 
-        throw new Error("Record too large");
+        throw new InvalidArgumentRangeError(data, 0xff_ff_ff_ff);
     }
 
     private encodeUnknown(data: unknown, createStringReferences: boolean = true) {
@@ -165,7 +166,8 @@ export class Encoder {
         if (Array.isArray(data))
             return this.encodeArray(data)
 
-        if (typeof data === "object") {
+        const proto = Object.getPrototypeOf(data);
+        if (typeof data === "object" && (proto === null || Object.getPrototypeOf(proto) === null)) {
             const shape: StringifiedShape = JSON.stringify(this.dehydrateToShape(data));
             const shapeIndex = this.shapeIndices.get(shape);
 
@@ -175,7 +177,7 @@ export class Encoder {
             return this.encodeRecord(data as Record<string, unknown>);
         }
 
-        throw new Error("Unable to encode");
+        throw new InvalidArgumentEncodeError(data);
     }
 
     private encodeShapeReference(data: Record<string, unknown>, index: number): Buffer {
@@ -212,7 +214,6 @@ export class Encoder {
         const stringCounts = new Map<string, number>();
 
         const scan = (value: unknown) => {
-
             //nur interesse an arrays oder records deshalb yeet
             //auch interesse an strings seit Neustem
             if (value === null || (isPrimitive(value) && typeof value !== "string") || value instanceof Date)

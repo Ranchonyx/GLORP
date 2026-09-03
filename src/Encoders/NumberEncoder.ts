@@ -1,5 +1,6 @@
-import {TAGS} from "../Constants";
-import {ByteBuffer} from "../ByteBuffer";
+import {TAGS} from "../Util/Constants.js";
+import {ByteBuffer} from "../Util/ByteBuffer.js";
+import {InvalidArgumentEncodeError, InvalidArgumentRangeError} from "../Util/Errors.js";
 
 function buf(len: number): ByteBuffer {
     return ByteBuffer.alloc(len);
@@ -117,7 +118,7 @@ function encodeInteger(integer: number | bigint): Buffer {
     if (sign === -1)
         return encodeNegativeInteger(integer);
 
-    throw new Error(`Unable to encode integer.`);
+    throw new InvalidArgumentEncodeError(integer)
 }
 
 function encodeFloat(float: number): Buffer {
@@ -164,7 +165,7 @@ export function encodeNumber(x: number | bigint): Buffer {
 
         //Wenn unsicher kabumm
         if (!Number.isSafeInteger(x))
-            throw new Error(`Unsafe integer: ${x} cannot be encoded.`);
+            throw new InvalidArgumentRangeError(x, Number.MAX_SAFE_INTEGER);
 
         //Integer kodieren
         return encodeInteger(x);

@@ -1,1 +1,1 @@
-{"version":3,"file":"StringDecoder.d.ts","sourceRoot":"","sources":["../../src/Decoders/StringDecoder.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,UAAU,EAAC,MAAM,eAAe,CAAC;AAGzC,wBAAgB,YAAY,CAAC,MAAM,EAAE,UAAU,GAAG;IAAE,KAAK,EAAE,MAAM,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CAkCrF"}
+{"version":3,"file":"StringDecoder.d.ts","sourceRoot":"","sources":["../../src/Decoders/StringDecoder.ts"],"names":[],"mappings":"AAAA,OAAO,EAAC,UAAU,EAAC,MAAM,uBAAuB,CAAC;AAIjD,wBAAgB,YAAY,CAAC,MAAM,EAAE,UAAU,GAAG;IAAE,KAAK,EAAE,MAAM,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CAkCrF"}

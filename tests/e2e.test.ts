@@ -1,8 +1,8 @@
-import {Encoder} from "../src/Encoder";
-import {Decoder} from "../src/Decoder";
-import {ByteBufferStream} from "../src/ByteBuffer";
+import {Encoder} from "../src/Encoder.js";
+import {Decoder} from "../src/Decoder.js";
 import {test} from "node:test";
 import * as assert from "node:assert";
+import {ByteBufferStream} from "../src/Util/ByteBufferStream.js";
 
 function encode(value: unknown): Buffer {
     return new Encoder().Encode(value);
@@ -11,7 +11,6 @@ function encode(value: unknown): Buffer {
 function decode(buffer: Buffer): unknown {
     return new Decoder(new ByteBufferStream(buffer)).Decode();
 }
-
 
 function expectRoundTrip(expected: unknown) {
     const encoded = encode(expected);
@@ -204,6 +203,111 @@ test("REC16", () => {
     );
 
     expectRoundTrip(expected);
+});
+
+test("Invalid objects", () => {
+    class SomeClass {
+    }
+
+    class ParentClass {
+    }
+
+    class ChildClass extends ParentClass {
+    }
+
+    function normalFunction() {
+    }
+
+    async function asyncFunction() {
+    }
+
+    function* generatorFunction() {
+        yield 1;
+    }
+
+    const customPrototype = {
+        glorp: true
+    };
+
+    const invalidValues: [string, unknown][] = [
+        ["class constructor", SomeClass],
+        ["normal function", normalFunction],
+        ["arrow function", () => {
+        }],
+        ["async function", asyncFunction],
+        ["generator function", generatorFunction],
+
+        ["class instance", new SomeClass()],
+        ["inherited class instance", new ChildClass()],
+
+        ["custom prototype", Object.create(customPrototype)],
+
+        ["Map", new Map()],
+        ["Set", new Set()],
+        ["WeakMap", new WeakMap()],
+        ["WeakSet", new WeakSet()],
+
+        ["ArrayBuffer", new ArrayBuffer(8)],
+        ["DataView", new DataView(new ArrayBuffer(8))],
+        ["Uint8Array", new Uint8Array(8)],
+        ["Uint16Array", new Uint16Array(8)],
+        ["Uint32Array", new Uint32Array(8)],
+        ["Int8Array", new Int8Array(8)],
+        ["Int16Array", new Int16Array(8)],
+        ["Int32Array", new Int32Array(8)],
+        ["Float32Array", new Float32Array(8)],
+        ["Float64Array", new Float64Array(8)],
+        ["BigInt64Array", new BigInt64Array(8)],
+        ["BigUint64Array", new BigUint64Array(8)],
+        ["Buffer", Buffer.alloc(8)],
+
+        ["RegExp", /glorp/],
+        ["Error", new Error("glorp")],
+        ["TypeError", new TypeError("glorp")],
+        ["Promise", Promise.resolve("glorp")],
+        ["URL", new URL("https://example.com")],
+
+        ["boxed Number", new Number(42)],
+        ["boxed String", new String("glorp")],
+        ["boxed Boolean", new Boolean(true)],
+        ["boxed BigInt", Object(42n)],
+        ["boxed Symbol", Object(Symbol("glorp"))],
+
+        ["Symbol", Symbol("glorp")]
+    ];
+
+    for (const [name, value] of invalidValues) {
+        assert.throws(
+            () => encode(value),
+            `Expected ${name} to be rejected`
+        );
+    }
+});
+
+test("Valid plain objects", () => {
+    assert.doesNotThrow(() => {
+        encode({});
+    });
+
+    assert.doesNotThrow(() => {
+        encode({
+            foo: "bar",
+            nested: {
+                glorp: 42
+            },
+            array: [
+                1, 2, 3
+            ]
+        });
+    });
+
+    assert.doesNotThrow(() => {
+        encode(Object.create(null));
+    });
+
+    assert.doesNotThrow(() => {
+        encode(new Date());
+    });
 });
 
 test("DATE", () => {

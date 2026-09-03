@@ -1,4 +1,4 @@
-import {ByteBuffer} from "../ByteBuffer";
+import {ByteBuffer} from "../Util/ByteBuffer.js";
 
 export function decodeDate(buffer: ByteBuffer) {
     const encodedEpoch = buffer.readInt56BE(1);

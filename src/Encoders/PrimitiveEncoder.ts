@@ -1,7 +1,8 @@
-import {encodeNumber} from "./NumberEncoder";
-import {encodeString} from "./StringEncoder";
-import {encodeBoolean} from "./BooleanEncoder";
-import {encodeAbsence} from "./AbsenceEncoder";
+import {encodeNumber} from "./NumberEncoder.js";
+import {encodeString} from "./StringEncoder.js";
+import {encodeBoolean} from "./BooleanEncoder.js";
+import {encodeAbsence} from "./AbsenceEncoder.js";
+import {InvalidArgumentEncodeError} from "../Util/Errors.js";
 
 export function isPrimitive(data: unknown): boolean {
     switch (typeof data) {
@@ -26,5 +27,5 @@ export function encodePrimitive(data: unknown): Buffer {
     if (typeof data === "undefined" || data === null)
         return encodeAbsence(data);
 
-    throw new Error(`Unable to encode data ${data}!`);
+    throw new InvalidArgumentEncodeError(data);
 }

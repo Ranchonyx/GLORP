@@ -1,4 +1,5 @@
-import { TAGS } from "../Constants";
+import { TAGS } from "../Util/Constants.js";
+import { InvalidBytecodeDecodeError } from "../Util/Errors.js";
 export function decodeString(buffer) {
     const tag = buffer[0];
     const ret = (value, bytesRead) => {
@@ -30,6 +31,6 @@ export function decodeString(buffer) {
             const len32u = buffer.readUInt32BE(1);
             return ret(buffer.subarray(5, 5 + len32u).toString("utf8"), len32u + 5);
     }
-    throw new Error("Unable to decode string.");
+    throw new InvalidBytecodeDecodeError("string", buffer);
 }
 //# sourceMappingURL=StringDecoder.js.map

@@ -1,4 +1,4 @@
-import { TAGS } from "../Constants";
+import { TAGS } from "../Util/Constants.js";
 export function encodeBoolean(data) {
     if (data)
         return Buffer.of(TAGS.TRU);

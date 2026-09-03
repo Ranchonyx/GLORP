@@ -1,5 +1,5 @@
-import {TAGS} from "../Constants";
-import {ByteBuffer} from "../ByteBuffer";
+import {TAGS} from "../Util/Constants.js";
+import {ByteBuffer} from "../Util/ByteBuffer.js";
 
 export function encodeDate(data: Date): Buffer {
     const b = ByteBuffer.alloc(8);

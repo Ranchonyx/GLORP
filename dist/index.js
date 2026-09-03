@@ -1,6 +1,6 @@
-import { Encoder } from "./Encoder";
-import { Decoder } from "./Decoder";
-import { ByteBufferStream } from "./ByteBuffer";
+import { Encoder } from "./Encoder.js";
+import { Decoder } from "./Decoder.js";
+import { ByteBufferStream } from "./Util/ByteBufferStream.js";
 /**
  * The **`GLORP`** static class contains static methods for decoding values from and encoding values to the GLORP format
  * */

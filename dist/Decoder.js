@@ -1,9 +1,10 @@
-import { FlAGS, GLORP_MAGIC, TAGS } from "./Constants";
-import { decodeNumber } from "./Decoders/NumberDecoder";
-import { decodeString } from "./Decoders/StringDecoder";
-import { decodeBoolean } from "./Decoders/BooleanDecoder";
-import { decodeAbsence } from "./Decoders/AbsenceDecoder";
-import { decodeDate } from "./Decoders/DateDecoder";
+import { FlAGS, GLORP_MAGIC, TAGS } from "./Util/Constants.js";
+import { decodeNumber } from "./Decoders/NumberDecoder.js";
+import { decodeString } from "./Decoders/StringDecoder.js";
+import { decodeBoolean } from "./Decoders/BooleanDecoder.js";
+import { decodeAbsence } from "./Decoders/AbsenceDecoder.js";
+import { decodeDate } from "./Decoders/DateDecoder.js";
+import { InvalidBytecodeDecodeError } from "./Util/Errors.js";
 export class Decoder {
     stream;
     shapes = [];
@@ -17,11 +18,11 @@ export class Decoder {
         const result = {};
         //Test here first, since at the top level, every shape is an array at least once
         if (!Array.isArray(shape))
-            throw new Error("Invalid shape.");
+            throw new Error(`While rehydrating shape ${JSON.stringify(shape)}: Shape is invalid - not an array.`);
         while (shapeIndex < shape.length) {
             const key = shape[shapeIndex];
             if (typeof key !== "string")
-                throw new Error("Invalid key.");
+                throw new Error(`While rehydrating shape ${JSON.stringify(shape)}: Shape key ${key} is invalid - not a string.`);
             const maybeNextShape = shape[shapeIndex + 1];
             let value;
             if (Array.isArray(values))
@@ -88,7 +89,7 @@ export class Decoder {
                 this.stream.skip(5);
                 break;
             default:
-                throw new Error("Unable to decode array.");
+                throw new InvalidBytecodeDecodeError("array", slice);
         }
         const values = [];
         for (let i = 0; i < elementCount; i++) {
@@ -125,7 +126,7 @@ export class Decoder {
                 break;
             }
             default:
-                throw new Error("Unable to decode record.");
+                throw new InvalidBytecodeDecodeError("record", this.stream.peekSlice());
         }
         const record = {};
         for (let i = 0; i < entryCount; i++) {
@@ -149,7 +150,7 @@ export class Decoder {
         this.stream.skip(countResult.bytesRead);
         const shape = this.shapes[Number(indexResult.value)];
         if (!shape)
-            throw new Error(`No such shape ${indexResult.value}`);
+            throw new Error(`While decoding shape at index ${indexResult.value}: No corresponding shape found.`);
         const values = [];
         for (let i = 0; i < Number(countResult.value); i++) {
             values.push(this.decodeUnknown());
@@ -191,13 +192,13 @@ export class Decoder {
         if (tag === TAGS.SP_STRING_REF) {
             return this.decodeStringReference();
         }
-        throw new Error(`Unrecognized tag: ${tag} / ${TAGS[tag]}`);
+        throw new InvalidBytecodeDecodeError("unknown", this.stream.peekSlice());
     }
     Decode() {
         const elements = [];
         //Read header
         if (this.stream.peekByte() !== GLORP_MAGIC)
-            throw new Error("No magic number.");
+            throw new Error("The input buffer is not a GLORP stream.");
         this.stream.skip(1);
         /*
             Buffer.of(GLORP_MAGIC),
@@ -214,7 +215,7 @@ export class Decoder {
                 this.stream.peekByte() === TAGS.ARR16 ||
                 this.stream.peekByte() === TAGS.ARR24 ||
                 this.stream.peekByte() === TAGS.ARR32))
-                throw new Error("Expected a table.");
+                throw new Error(`While attempting to read table data due to flags 0b${flags.toString(2).padStart(8, "0")}: No table follows the flags byte.`);
         if (hasShapeTable) {
             //Parse shapes
             const decodedShapeArray = this.decodeArray();
@@ -235,7 +236,7 @@ export class Decoder {
             elements.push(value);
         }
         if (elements.length === 0)
-            throw new Error("Unable to decode.");
+            throw new Error("Decoded amount of elements may not be zero!");
         return (elements.length > 1 ? elements : elements[0]);
     }
 }

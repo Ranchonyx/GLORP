@@ -1,7 +1,9 @@
+import {InvalidArgumentRangeError} from "./Errors.js";
+
 export class ByteBuffer extends Buffer {
     public writeUInt24BE(value: number, offset: number = 0): number {
         if (value < 0 || value > 0xFFFFFF) {
-            throw new RangeError("UInt24 out of range.");
+            throw new InvalidArgumentRangeError(value, 0xFFFFFF);
         }
 
         this[offset] = (value >>> 16) & 0xFF;
@@ -13,7 +15,7 @@ export class ByteBuffer extends Buffer {
 
     public writeInt24BE(value: number, offset: number = 0): number {
         if (value < -0x800000 || value > 0x7FFFFF) {
-            throw new RangeError("Int24 out of range.");
+            throw new InvalidArgumentRangeError(value, 0x7FFFFF, -0x800000);
         }
 
         if (value < 0) {
@@ -41,7 +43,7 @@ export class ByteBuffer extends Buffer {
 
     public writeUInt48BE(value: number, offset: number = 0): number {
         if (value < 0 || value > 0xFFFFFFFFFFFF) {
-            throw new RangeError("UInt48 out of range.");
+            throw new InvalidArgumentRangeError(value, 0xFFFFFFFFFFFF);
         }
 
         this[offset] = Math.floor(value / 0x10000000000) & 0xFF;
@@ -56,7 +58,7 @@ export class ByteBuffer extends Buffer {
 
     public writeInt48BE(value: number, offset: number = 0): number {
         if (value < -0x800000000000 || value > 0x7FFFFFFFFFFF) {
-            throw new RangeError("Int48 out of range.");
+            throw new InvalidArgumentRangeError(value, 0x7FFFFFFFFFFF, -0x800000000000);
         }
 
         if (value < 0) {
@@ -87,7 +89,7 @@ export class ByteBuffer extends Buffer {
 
     public writeBigUInt56BE(value: bigint, offset: number = 0): number {
         if (value < 0n || value > 0xFF_FF_FF_FF_FF_FF_FFn)
-            throw new RangeError("UInt56 out of range.");
+            throw new InvalidArgumentRangeError(value, 0xFF_FF_FF_FF_FF_FF_FFn, 0n);
 
         for (let i = 6; i >= 0; i--) {
             this[offset + i] = Number(value & 0xFFn);
@@ -102,7 +104,7 @@ export class ByteBuffer extends Buffer {
             value < -0x80_00_00_00_00_00_00n ||
             value > 0x7F_FF_FF_FF_FF_FF_FFn
         ) {
-            throw new RangeError("Int56 out of range.");
+            throw new InvalidArgumentRangeError(value, 0x7F_FF_FF_FF_FF_FF_FFn, -0x80_00_00_00_00_00_00n);
         }
 
         if (value < 0n)
@@ -131,7 +133,7 @@ export class ByteBuffer extends Buffer {
 
     public writeInt56BE(value: number, offset: number = 0): number {
         if (!Number.isSafeInteger(value))
-            throw new RangeError("Int56 value must be a safe integer.");
+            throw new InvalidArgumentRangeError(value, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER);
 
         return this.writeBigInt56BE(BigInt(value), offset);
     }
@@ -142,7 +144,7 @@ export class ByteBuffer extends Buffer {
         const number = Number(value);
 
         if (!Number.isSafeInteger(number))
-            throw new RangeError("Int56 value must be a safe integer.");
+            throw new InvalidArgumentRangeError(number, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER);
 
         return number;
     }
@@ -168,36 +170,5 @@ export class ByteBuffer extends Buffer {
     public static alloc(size: number): ByteBuffer {
         const buffer = Buffer.allocUnsafe(size);
         return this.promote(buffer);
-    }
-}
-
-export class ByteBufferStream {
-    private offset = 0;
-    private readonly length: number;
-    private readonly buffer: ByteBuffer;
-
-    public constructor(buf: Buffer) {
-        this.buffer = ByteBuffer.fromBuffer(buf);
-        this.length = buf.byteLength;
-    }
-
-    public peekByte() {
-        if (this.eof) {
-            throw new RangeError("Unexpected end of stream.");
-        }
-
-        return this.buffer[this.offset];
-    }
-
-    public peekSlice(amount: number = 0xffffffff) {
-        return this.buffer.subarray(this.offset, this.offset + amount);
-    }
-
-    public skip(amount: number) {
-        this.offset += amount;
-    }
-
-    public get eof(): boolean {
-        return this.offset >= this.length;
     }
 }

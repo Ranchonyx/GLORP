@@ -1,7 +1,8 @@
+import { InvalidArgumentRangeError } from "./Errors.js";
 export class ByteBuffer extends Buffer {
     writeUInt24BE(value, offset = 0) {
         if (value < 0 || value > 0xFFFFFF) {
-            throw new RangeError("UInt24 out of range.");
+            throw new InvalidArgumentRangeError(value, 0xFFFFFF);
         }
         this[offset] = (value >>> 16) & 0xFF;
         this[offset + 1] = (value >>> 8) & 0xFF;
@@ -10,7 +11,7 @@ export class ByteBuffer extends Buffer {
     }
     writeInt24BE(value, offset = 0) {
         if (value < -0x800000 || value > 0x7FFFFF) {
-            throw new RangeError("Int24 out of range.");
+            throw new InvalidArgumentRangeError(value, 0x7FFFFF, -0x800000);
         }
         if (value < 0) {
             value += 0x1000000;
@@ -30,7 +31,7 @@ export class ByteBuffer extends Buffer {
     }
     writeUInt48BE(value, offset = 0) {
         if (value < 0 || value > 0xFFFFFFFFFFFF) {
-            throw new RangeError("UInt48 out of range.");
+            throw new InvalidArgumentRangeError(value, 0xFFFFFFFFFFFF);
         }
         this[offset] = Math.floor(value / 0x10000000000) & 0xFF;
         this[offset + 1] = Math.floor(value / 0x100000000) & 0xFF;
@@ -42,7 +43,7 @@ export class ByteBuffer extends Buffer {
     }
     writeInt48BE(value, offset = 0) {
         if (value < -0x800000000000 || value > 0x7FFFFFFFFFFF) {
-            throw new RangeError("Int48 out of range.");
+            throw new InvalidArgumentRangeError(value, 0x7FFFFFFFFFFF, -0x800000000000);
         }
         if (value < 0) {
             value += 0x1000000000000;
@@ -65,7 +66,7 @@ export class ByteBuffer extends Buffer {
     }
     writeBigUInt56BE(value, offset = 0) {
         if (value < 0n || value > 0xffffffffffffffn)
-            throw new RangeError("UInt56 out of range.");
+            throw new InvalidArgumentRangeError(value, 0xffffffffffffffn, 0n);
         for (let i = 6; i >= 0; i--) {
             this[offset + i] = Number(value & 0xffn);
             value >>= 8n;
@@ -75,7 +76,7 @@ export class ByteBuffer extends Buffer {
     writeBigInt56BE(value, offset = 0) {
         if (value < -0x80000000000000n ||
             value > 0x7fffffffffffffn) {
-            throw new RangeError("Int56 out of range.");
+            throw new InvalidArgumentRangeError(value, 0x7fffffffffffffn, -0x80000000000000n);
         }
         if (value < 0n)
             value += 0x100000000000000n;
@@ -96,14 +97,14 @@ export class ByteBuffer extends Buffer {
     }
     writeInt56BE(value, offset = 0) {
         if (!Number.isSafeInteger(value))
-            throw new RangeError("Int56 value must be a safe integer.");
+            throw new InvalidArgumentRangeError(value, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER);
         return this.writeBigInt56BE(BigInt(value), offset);
     }
     readInt56BE(offset = 0) {
         const value = this.readBigInt56BE(offset);
         const number = Number(value);
         if (!Number.isSafeInteger(number))
-            throw new RangeError("Int56 value must be a safe integer.");
+            throw new InvalidArgumentRangeError(number, Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER);
         return number;
     }
     subarray(start, end) {
@@ -122,30 +123,6 @@ export class ByteBuffer extends Buffer {
     static alloc(size) {
         const buffer = Buffer.allocUnsafe(size);
         return this.promote(buffer);
-    }
-}
-export class ByteBufferStream {
-    offset = 0;
-    length;
-    buffer;
-    constructor(buf) {
-        this.buffer = ByteBuffer.fromBuffer(buf);
-        this.length = buf.byteLength;
-    }
-    peekByte() {
-        if (this.eof) {
-            throw new RangeError("Unexpected end of stream.");
-        }
-        return this.buffer[this.offset];
-    }
-    peekSlice(amount = 0xffffffff) {
-        return this.buffer.subarray(this.offset, this.offset + amount);
-    }
-    skip(amount) {
-        this.offset += amount;
-    }
-    get eof() {
-        return this.offset >= this.length;
     }
 }
 //# sourceMappingURL=ByteBuffer.js.map

@@ -1,5 +1,6 @@
-import { TAGS } from "../Constants";
-import { ByteBuffer } from "../ByteBuffer";
+import { TAGS } from "../Util/Constants.js";
+import { ByteBuffer } from "../Util/ByteBuffer.js";
+import { InvalidArgumentEncodeError, InvalidArgumentRangeError } from "../Util/Errors.js";
 function buf(len) {
     return ByteBuffer.alloc(len);
 }
@@ -94,7 +95,7 @@ function encodeInteger(integer) {
         return encodePositiveInteger(integer);
     if (sign === -1)
         return encodeNegativeInteger(integer);
-    throw new Error(`Unable to encode integer.`);
+    throw new InvalidArgumentEncodeError(integer);
 }
 function encodeFloat(float) {
     //Wenn fround(64bit number) === 32 number, dann passt x in 32bits IEEE-754
@@ -131,7 +132,7 @@ export function encodeNumber(x) {
     if (Number.isInteger(x)) {
         //Wenn unsicher kabumm
         if (!Number.isSafeInteger(x))
-            throw new Error(`Unsafe integer: ${x} cannot be encoded.`);
+            throw new InvalidArgumentRangeError(x, Number.MAX_SAFE_INTEGER);
         //Integer kodieren
         return encodeInteger(x);
     }
