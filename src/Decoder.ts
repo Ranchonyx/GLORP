@@ -205,7 +205,7 @@ export class Decoder {
             values.push(this.decodeUnknown());
         }
 
-        this.rehydrateShape(shape, values);
+        return this.rehydrateShape(shape, values);
     }
 
     private decodeDate() {
@@ -266,13 +266,6 @@ export class Decoder {
         if (this.stream.peekByte() !== GLORP_MAGIC)
             throw new Error("The input buffer is not a GLORP stream.");
         this.stream.skip(1);
-
-        /*
-            Buffer.of(GLORP_MAGIC),
-            Buffer.of(flagsByte),
-            Buffer.concat(tables),
-            payload
-        */
 
         const flags = this.stream.peekByte();
         this.stream.skip(1);

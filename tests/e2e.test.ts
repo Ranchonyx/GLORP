@@ -310,6 +310,65 @@ test("Valid plain objects", () => {
     });
 });
 
+test("Repeated record shapes", () => {
+    const input = [
+        {id: 1, name: "Anna", active: true},
+        {id: 2, name: "Ben", active: false},
+        {id: 3, name: "Chris", active: true}
+    ];
+
+    const encoded = encode(input);
+    const decoded = decode(encoded);
+
+    assert.deepStrictEqual(decoded, input);
+});
+
+test("Repeated nested record shapes", () => {
+    const input = [
+        {
+            id: 1,
+            address: {
+                city: "Minden",
+                zip: 32423
+            }
+        },
+        {
+            id: 2,
+            address: {
+                city: "Lübbecke",
+                zip: 32312
+            }
+        },
+        {
+            id: 3,
+            address: {
+                city: "Herford",
+                zip: 32052
+            }
+        }
+    ];
+
+    const encoded = encode(input);
+    const decoded = decode(encoded);
+
+    assert.deepStrictEqual(decoded, input);
+});
+
+test("Repeated strings", () => {
+    const input = [
+        "glorp",
+        "glorp",
+        "glorp",
+        "different",
+        "glorp"
+    ];
+
+    const encoded = encode(input);
+    const decoded = decode(encoded);
+
+    assert.deepStrictEqual(decoded, input);
+});
+
 test("DATE", () => {
     const expected = new Date("2026-08-28T13:37:42.123Z");
     expectRoundTrip(expected);
