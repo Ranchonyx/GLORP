@@ -149,8 +149,61 @@ export class BufferedWriter {
         return this.offset;
     }
 
+
     public readBigUInt56BE(offset: number = 0): bigint {
         return this.buffer.readBigUInt56BE(offset);
+    }
+
+    public writeBigUInt64BE(value: bigint): number {
+        if (
+            value < 0n ||
+            value > 0xFF_FF_FF_FF_FF_FF_FF_FFn
+        ) {
+            throw new InvalidArgumentRangeError(
+                value,
+                0xFF_FF_FF_FF_FF_FF_FF_FFn,
+                0n
+            );
+        }
+
+        this.ensureAtLeast(8);
+
+        this.offset = this.buffer.writeBigUInt64BE(
+            value,
+            this.offset
+        );
+
+        return this.offset;
+    }
+
+    public readBigUInt64BE(offset: number = 0): bigint {
+        return this.buffer.readBigUInt64BE(offset);
+    }
+
+    public writeBigInt64BE(value: bigint): number {
+        if (
+            value < -0x80_00_00_00_00_00_00_00n ||
+            value > 0x7F_FF_FF_FF_FF_FF_FF_FFn
+        ) {
+            throw new InvalidArgumentRangeError(
+                value,
+                0x7F_FF_FF_FF_FF_FF_FF_FFn,
+                -0x80_00_00_00_00_00_00_00n
+            );
+        }
+
+        this.ensureAtLeast(8);
+
+        this.offset = this.buffer.writeBigInt64BE(
+            value,
+            this.offset
+        );
+
+        return this.offset;
+    }
+
+    public readBigInt64BE(offset: number = 0): bigint {
+        return this.buffer.readBigInt64BE(offset);
     }
 
     public readBigInt56BE(offset: number = 0): bigint {
@@ -254,5 +307,9 @@ export class BufferedWriter {
 
     public finish(): ByteBuffer {
         return this.buffer.subarray(0, this.offset);
+    }
+
+    public reset(): void {
+        this.offset = 0;
     }
 }

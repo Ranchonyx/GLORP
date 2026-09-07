@@ -1,11 +1,13 @@
-import {Encoder} from "../src/Encoder.js";
+import {BufferedEncoder} from "../src/Encoder.js";
 import {Decoder} from "../src/Decoder.js";
 import {test} from "node:test";
 import * as assert from "node:assert";
 import {ByteBufferStream} from "../src/Util/ByteBufferStream.js";
+import {BufferedWriter} from "../src/Util/BufferedWriter";
+import {writeFileSync} from "node:fs";
 
 function encode(value: unknown): Buffer {
-    return new Encoder().Encode(value);
+    return new BufferedEncoder(new BufferedWriter()).Encode(value);
 }
 
 function decode(buffer: Buffer): unknown {
@@ -318,6 +320,7 @@ test("Repeated record shapes", () => {
     ];
 
     const encoded = encode(input);
+    writeFileSync("encoded", encoded);
     const decoded = decode(encoded);
 
     assert.deepStrictEqual(decoded, input);

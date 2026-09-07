@@ -1,12 +1,14 @@
-import {Encoder} from "./Encoder.js";
+import {BufferedEncoder} from "./Encoder.js";
 import {Decoder} from "./Decoder.js";
 import {ByteBufferStream} from "./Util/ByteBufferStream.js";
+import {BufferedWriter} from "./Util/BufferedWriter";
 
 /**
  * The **`GLORP`** static class contains static methods for decoding values from and encoding values to the GLORP format
  * */
 export class GLORP {
-    static #encoder = new Encoder();
+    static #writer = new BufferedWriter();
+    static #encoder = new BufferedEncoder(this.#writer);
 
     /**
      * @typeParam T - The expected return type. Not validated at runtime.
@@ -24,6 +26,9 @@ export class GLORP {
      * @param data - The JavaScript value to encode.
      * */
     public static encode(data: unknown): Buffer {
-        return this.#encoder.Encode(data);
+        const result = this.#encoder.Encode(data);
+        this.#writer.reset();
+
+        return result;
     }
 }

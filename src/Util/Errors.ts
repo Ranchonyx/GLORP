@@ -1,14 +1,14 @@
 export class InvalidArgumentEncodeError extends Error {
     public constructor(argument: unknown) {
-        super(`Encoding ${JSON.stringify(argument)} (${typeof argument} / ${Object.getPrototypeOf(argument)}) is not supported.`);
+        super(`Encoding ${JSON.stringify(argument)} (${typeof argument} / ${String(Object.getPrototypeOf(argument))}) is not supported.`);
         Object.setPrototypeOf(this, InvalidArgumentEncodeError.prototype);
     }
 }
 
 export class InvalidArgumentRangeError extends Error {
     public constructor(argument: unknown, max: number | bigint, min: number | bigint = 0) {
-        super(`Unable to encode encode argument ${JSON.stringify(argument)} (${typeof argument} / ${Object.getPrototypeOf(argument)}). Range is ${min} - ${max}`);
-        Object.setPrototypeOf(this, InvalidArgumentEncodeError.prototype);
+        super(`Unable to encode argument ${String(argument)} ` + `(${typeof argument}). Range is ${String(min)} - ${String(max)}`);
+        Object.setPrototypeOf(this, InvalidArgumentRangeError.prototype);
     }
 }
 
