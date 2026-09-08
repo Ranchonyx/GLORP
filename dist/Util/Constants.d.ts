@@ -40,10 +40,11 @@ export declare enum TAGS {
     REC24 = 38,//Record<unknown, unknown>, keylen <= 0xffffff
     REC32 = 39,//Record<unknown, unknown>, keylen <= 0xffffffff
     DATE = 40,//Date,
-    SP_SHAPE_REF = 41,//Reference to a shape
-    SP_STRING_DEF = 42,//String definition
-    SP_STRING_REF = 43,//Reference to a string
-    SP_RUN = 44
+    SP_SHAPE_DEF = 41,//Shape definition
+    SP_SHAPE_REF = 42,//Reference to a shape
+    SP_STRING_DEF = 43,//String definition
+    SP_STRING_REF = 44,//Reference to a string
+    SP_RUN = 45
 }
 export declare enum FlAGS {
     TAB_SHAPES = 1,
@@ -53,13 +54,19 @@ export declare const GLORP_MAGIC: number;
 type ValueOrArray<T> = T | ValueOrArray<T>[];
 export type ShapeNode = ValueOrArray<string>;
 export type StringifiedShape = string & {};
-export declare enum StringState {
+export declare enum SymbolState {
     UNIQUE = 0,
     DEFINED = 1
 }
-export type StringEntry = {
-    state: StringState;
+export type SymbolEntry = {
+    state: SymbolState;
     index: number;
+};
+export type ShapeEntry = {
+    index?: number;
+    state: SymbolState;
+    keys: string[];
+    encodedShape: StringifiedShape;
 };
 export {};
 //# sourceMappingURL=Constants.d.ts.map

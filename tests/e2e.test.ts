@@ -350,6 +350,8 @@ test("Repeated nested record shapes", () => {
     ];
 
     const encoded = encode(input);
+    writeFileSync("encoded.hex", encoded);
+
     const decoded = decode(encoded);
 
     assert.deepStrictEqual(decoded, input);

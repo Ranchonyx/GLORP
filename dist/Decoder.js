@@ -1,4 +1,4 @@
-import { FlAGS, GLORP_MAGIC, TAGS } from "./Util/Constants.js";
+import { GLORP_MAGIC, TAGS } from "./Util/Constants.js";
 import { decodeNumber } from "./Decoders/NumberDecoder.js";
 import { decodeString } from "./Decoders/StringDecoder.js";
 import { decodeBoolean } from "./Decoders/BooleanDecoder.js";
@@ -7,8 +7,8 @@ import { decodeDate } from "./Decoders/DateDecoder.js";
 import { InvalidBytecodeDecodeError } from "./Util/Errors.js";
 export class Decoder {
     stream;
-    shapes = [];
     stringData = new Map();
+    shapeData = new Map;
     constructor(stream) {
         this.stream = stream;
     }
@@ -146,7 +146,24 @@ export class Decoder {
         this.stream.skip(1);
         const { value: index, bytesRead } = decodeNumber(this.stream.peekSlice());
         this.stream.skip(bytesRead);
-        return this.stringData.get(Number(index));
+        const data = this.stringData.get(Number(index));
+        if (!data)
+            throw new Error(`While decoding string at index ${index}: No corresponding string found.`);
+        return data;
+    }
+    decodeShapeDefinition() {
+        this.stream.skip(1);
+        const shapeDataIndex = this.decodeNumber();
+        const recordShapeJSON = this.decodeString();
+        const valuesLength = this.decodeNumber();
+        const values = [];
+        //VALUES
+        for (let i = 0; i < Number(valuesLength); i++) {
+            values.push(this.decodeUnknown());
+        }
+        const shape = JSON.parse(recordShapeJSON);
+        this.shapeData.set(Number(shapeDataIndex), shape);
+        return this.rehydrateShape(shape, values);
     }
     decodeShapeReference() {
         this.stream.skip(1);
@@ -154,7 +171,7 @@ export class Decoder {
         this.stream.skip(indexResult.bytesRead);
         const countResult = decodeNumber(this.stream.peekSlice());
         this.stream.skip(countResult.bytesRead);
-        const shape = this.shapes[Number(indexResult.value)];
+        const shape = this.shapeData.get(Number(indexResult.value));
         if (!shape)
             throw new Error(`While decoding shape at index ${indexResult.value}: No corresponding shape found.`);
         const values = [];
@@ -192,6 +209,9 @@ export class Decoder {
         if (tag > TAGS.REC32 && tag <= TAGS.DATE) {
             return this.decodeDate();
         }
+        if (tag === TAGS.SP_SHAPE_DEF) {
+            return this.decodeShapeDefinition();
+        }
         if (tag === TAGS.SP_SHAPE_REF) {
             return this.decodeShapeReference();
         }
@@ -211,20 +231,6 @@ export class Decoder {
         this.stream.skip(1);
         const flags = this.stream.peekByte();
         this.stream.skip(1);
-        const hasShapeTable = (flags & FlAGS.TAB_SHAPES) !== 0;
-        if (hasShapeTable)
-            if (!(this.stream.peekByte() === TAGS.ARR8 ||
-                this.stream.peekByte() === TAGS.ARR16 ||
-                this.stream.peekByte() === TAGS.ARR24 ||
-                this.stream.peekByte() === TAGS.ARR32))
-                throw new Error(`While attempting to read table data due to flags 0b${flags.toString(2).padStart(8, "0")}: No table follows the flags byte.`);
-        if (hasShapeTable) {
-            //Parse shapes
-            const decodedShapeArray = this.decodeArray();
-            for (const decodedShape of decodedShapeArray) {
-                this.shapes.push(JSON.parse(decodedShape));
-            }
-        }
         //Start parsing everything else
         while (!this.stream.eof) {
             const value = this.decodeUnknown();

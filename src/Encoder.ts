@@ -1,12 +1,13 @@
-import {FlAGS, GLORP_MAGIC, ShapeNode, StringEntry, StringifiedShape, StringState, TAGS} from "./Util/Constants.js";
+import {GLORP_MAGIC, ShapeEntry, ShapeNode, SymbolEntry, SymbolState, TAGS} from "./Util/Constants.js";
 import {InvalidArgumentEncodeError, InvalidArgumentRangeError} from "./Util/Errors.js";
 import {BufferedWriter} from "./Util/BufferedWriter";
 
 export class BufferedEncoder {
-    private shapes: StringifiedShape[] = [];
-    private shapeIndices = new Map<StringifiedShape, number>();
+    private stringData = new Map<string, SymbolEntry>();
 
-    private stringData = new Map<string, StringEntry>();
+    private shapeEntries: ShapeEntry[] = [];
+    private lastShapeEntry: ShapeEntry | null = null;
+    private nextShapeIndex = 0;
 
     private dehydrateToShape(input: unknown): ShapeNode {
         const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -35,14 +36,14 @@ export class BufferedEncoder {
         if (len <= 0xff) {
             this.writer.writeByte(TAGS.STU8);
             this.writer.writeUInt8(len);
-            this.writer.writeBuffer(Buffer.from(utf8String, "utf8"));
+            this.writer.writeString(utf8String, len, "utf8");
             return;
         }
 
         if (len <= 0xff_ff) {
             this.writer.writeByte(TAGS.STU16);
             this.writer.writeUInt16BE(len);
-            this.writer.writeBuffer(Buffer.from(utf8String, "utf8"));
+            this.writer.writeString(utf8String, len, "utf8");
             return;
 
         }
@@ -50,14 +51,14 @@ export class BufferedEncoder {
         if (len <= 0xff_ff_ff) {
             this.writer.writeByte(TAGS.STU24);
             this.writer.writeUInt24BE(len);
-            this.writer.writeBuffer(Buffer.from(utf8String, "utf8"));
+            this.writer.writeString(utf8String, len, "utf8");
             return;
         }
 
         if (len <= 0xff_ff_ff_ff) {
             this.writer.writeByte(TAGS.STU32);
             this.writer.writeUInt32BE(len);
-            this.writer.writeBuffer(Buffer.from(utf8String, "utf8"));
+            this.writer.writeString(utf8String, len, "utf8");
             return;
         }
 
@@ -68,35 +69,35 @@ export class BufferedEncoder {
         if (len <= 0xff) {
             this.writer.writeByte(TAGS.STA8);
             this.writer.writeUInt8(len);
-            this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
+            this.writer.writeString(asciiString, len, "ascii");
             return;
         }
 
         if (len <= 0xff_ff) {
             this.writer.writeByte(TAGS.STA16);
             this.writer.writeUInt16BE(len);
-            this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
+            this.writer.writeString(asciiString, len, "ascii");
             return;
         }
 
         if (len <= 0xff_ff_ff) {
             this.writer.writeByte(TAGS.STA24);
             this.writer.writeUInt24BE(len);
-            this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
+            this.writer.writeString(asciiString, len, "ascii");
             return;
         }
 
         if (len <= 0xff_ff_ff_ff) {
             this.writer.writeByte(TAGS.STA32);
             this.writer.writeUInt32BE(len);
-            this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
+            this.writer.writeString(asciiString, len, "ascii");
             return;
         }
 
         throw new InvalidArgumentRangeError(asciiString, 0xff_ff_ff_ff);
     }
 
-    private encodeString(x: string): void {
+    private encodeStringUTFOrASCII(x: string): void {
         const byteLength = Buffer.byteLength(x);
 
         if (x.length === byteLength)
@@ -285,7 +286,6 @@ export class BufferedEncoder {
         switch (typeof data) {
             case "bigint":
             case "boolean":
-            case "string":
             case "number":
             case "undefined":
                 return true;
@@ -297,8 +297,6 @@ export class BufferedEncoder {
     private encodePrimitive(data: unknown) {
         if (typeof data === "number" || typeof data === "bigint")
             return this.encodeNumber(data);
-        if (typeof data === "string")
-            return this.encodeString(data);
         if (typeof data === "boolean")
             return this.encodeBoolean(data);
         if (typeof data === "undefined" || data === null)
@@ -312,7 +310,7 @@ export class BufferedEncoder {
         this.writer.writeInt56BE(data.valueOf());
     }
 
-    private encodeArray(array: unknown[], createStringReferences: boolean = true): void {
+    private encodeArray(array: unknown[]): void {
         const encodeMeta = (count: number) => {
             if (count <= 0xff) {
                 this.writer.writeByte(TAGS.ARR8);
@@ -343,10 +341,10 @@ export class BufferedEncoder {
 
         encodeMeta(array.length);
         for (const element of array)
-            this.encodeUnknown(element, createStringReferences);
+            this.encodeUnknown(element);
     }
 
-    private encodeRecord(data: Record<string, unknown>): void {
+    private encodeRecord(data: Record<string, unknown>, keys: string[] = Object.keys(data)): void {
         const encodeMeta = (len: number) => {
             if (len <= 0xff) {
                 this.writer.writeByte(TAGS.REC8);
@@ -374,39 +372,97 @@ export class BufferedEncoder {
 
             throw new InvalidArgumentRangeError(data, 0xff_ff_ff_ff);
         }
+        encodeMeta(keys.length);
 
-        const entries = Object.entries(data);
-        encodeMeta(entries.length);
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i];
 
-        for (const [key, value] of entries) {
             this.encodeString(key);
-            this.encodeUnknown(value);
+            this.encodeUnknown(data[key]);
         }
     }
 
-    private encodeUnknown(data: unknown, createStringReferences: boolean = true) {
-        //Check if we need to encode a primitive first
-        if (typeof data === "string" && createStringReferences) {
+    private matchesShape(keys: string[], entry: ShapeEntry) {
+        if (keys.length !== entry.keys.length)
+            return false;
 
-            const entry = this.stringData.get(data);
+        for (let i = 0; i < keys.length; i++)
+            if (keys[i] !== entry.keys[i])
+                return false;
 
-            //If we do not have a stringdata entry
-            if (entry === undefined) {
-                //Create it but encode it as a normal string
-                this.stringData.set(data, {index: this.stringData.size, state: StringState.UNIQUE});
-                return this.encodeString(data);
+        return true;
+    }
+
+    private findShapeEntry(keys: string[]) {
+        const last = this.lastShapeEntry;
+
+        if (last && this.matchesShape(keys, last))
+            return last;
+
+        for (let i = 0; i < this.shapeEntries.length; i++) {
+            const entry = this.shapeEntries[i];
+
+            if (this.matchesShape(keys, entry))
+                return entry;
+        }
+
+        return null;
+    }
+
+    private encodeObject(data: Record<string, unknown>): void {
+        const keys = Object.keys(data);
+        let entry = this.findShapeEntry(keys);
+
+        if (entry === null) {
+            entry = {
+                state: SymbolState.UNIQUE,
+                keys,
+                encodedShape: JSON.stringify(keys)
+            }
+
+            this.shapeEntries.push(entry);
+            this.lastShapeEntry = entry;
+
+            this.encodeRecord(data);
+            return;
+        }
+
+        this.lastShapeEntry = entry;
+        if (entry.state === SymbolState.UNIQUE) {
+            entry.state = SymbolState.DEFINED;
+            entry.index = this.nextShapeIndex++;
+
+            this.encodeShapeDefinition(data, entry as Required<ShapeEntry>);
+            return;
+        }
+
+        this.encodeShapeReference(data, entry as Required<ShapeEntry>);
+    }
+
+    private encodeString(data: string) {
+        const entry = this.stringData.get(data);
+        //If we do not have a stringdata entry
+        if (entry === undefined) {
+            //Create it but encode it as a normal string
+            this.stringData.set(data, {index: this.stringData.size, state: SymbolState.UNIQUE});
+            return this.encodeStringUTFOrASCII(data);
+        } else {
+            //If we do have an entry, check state
+            if (entry.state === SymbolState.UNIQUE) {
+                //If it's unique until now, make it defined and encode a string definition
+                entry.state = SymbolState.DEFINED;
+                return this.encodeStringDefinition(data, entry);
             } else {
-                //If we do have an entry, check state
-                if (entry.state === StringState.UNIQUE) {
-                    //If it's unique until now, make it defined and encode a string definition
-                    entry.state = StringState.DEFINED;
-                    return this.encodeStringDefinition(data, entry);
-                } else {
-                    //If it's already defined, encode a reference
-                    return this.encodeStringReference(entry);
-                }
+                //If it's already defined, encode a reference
+                return this.encodeStringReference(entry);
             }
         }
+    }
+
+    private encodeUnknown(data: unknown) {
+        //Check if we need to encode a primitive first
+        if (typeof data === "string")
+            return this.encodeString(data);
 
         if (this.isPrimitive(data))
             return this.encodePrimitive(data);
@@ -419,37 +475,39 @@ export class BufferedEncoder {
             return this.encodeArray(data)
 
         const proto = Object.getPrototypeOf(data);
-        if (typeof data === "object" && (proto === null || Object.getPrototypeOf(proto) === null)) {
-            const shape: StringifiedShape = JSON.stringify(this.dehydrateToShape(data));
-            const shapeIndex = this.shapeIndices.get(shape);
-
-            if (shapeIndex !== undefined)
-                return this.encodeShapeReference(data as Record<string, unknown>, shapeIndex);
-
-            return this.encodeRecord(data as Record<string, unknown>);
-        }
+        if (typeof data === "object" && (proto === null || Object.getPrototypeOf(proto) === null))
+            return this.encodeObject(data as Record<string, unknown>);
 
         throw new InvalidArgumentEncodeError(data);
     }
 
-    private encodeShapeReference(data: Record<string, unknown>, index: number): void {
-        const values = Object.values(data);
+    private encodeShapeValues(data: Record<string, unknown>, entry: Required<ShapeEntry>): void {
+        this.encodeNumber(entry.keys.length);
 
-        this.writer.writeByte(TAGS.SP_SHAPE_REF);
-        this.encodeNumber(index);
-        this.encodeNumber(values.length);
-        for (const value of values) {
-            this.encodeUnknown(value);
-        }
+        for (let i = 0; i < entry.keys.length; i++)
+            this.encodeUnknown(data[entry.keys[i]]);
     }
 
-    private encodeStringDefinition(data: string, entry: StringEntry): void {
+    private encodeShapeDefinition(data: Record<string, unknown>, entry: Required<ShapeEntry>): void {
+        this.writer.writeByte(TAGS.SP_SHAPE_DEF);
+        this.encodeNumber(entry.index);
+        this.encodeStringUTFOrASCII(entry.encodedShape);
+        this.encodeShapeValues(data, entry);
+    }
+
+    private encodeShapeReference(data: Record<string, unknown>, entry: Required<ShapeEntry>): void {
+        this.writer.writeByte(TAGS.SP_SHAPE_REF);
+        this.encodeNumber(entry.index);
+        this.encodeShapeValues(data, entry);
+    }
+
+    private encodeStringDefinition(data: string, entry: SymbolEntry): void {
         this.writer.writeByte(TAGS.SP_STRING_DEF);
         this.encodeNumber(entry.index);
-        this.encodeString(data);
+        this.encodeStringUTFOrASCII(data);
     }
 
-    private encodeStringReference(entry: StringEntry): void {
+    private encodeStringReference(entry: SymbolEntry): void {
         this.writer.writeByte(TAGS.SP_STRING_REF);
         this.encodeNumber(entry.index);
     }
@@ -458,49 +516,12 @@ export class BufferedEncoder {
     }
 
     public Encode(data: unknown): Buffer {
-        this.shapes = [];
-        this.shapeIndices.clear();
+        this.writer.reset();
 
         this.stringData.clear();
-
-        const shapeCounts = new Map<StringifiedShape, number>();
-
-        const scan = (value: unknown) => {
-            if (value === null || value === undefined)
-                return;
-
-            const type = typeof value;
-            switch (type) {
-                case "object":
-                    if (Array.isArray(value)) {
-                        for (let i = 0; i < value.length; i++)
-                            scan(value[i]);
-                        return;
-                    }
-
-                    if (Object.getPrototypeOf(value) === Date.prototype)
-                        return;
-
-                    const shape: StringifiedShape = JSON.stringify(this.dehydrateToShape(value));
-                    shapeCounts.set(shape, (shapeCounts.get(shape) || 0) + 1);
-
-                    for (const key of Object.keys(value))
-                        scan((value as Record<string, unknown>)[key]);
-                    return;
-            }
-        };
-
-        //erster pass für analyse
-        //zählt shapes und strings
-        scan(data);
-
-        for (const [shape, count] of shapeCounts) {
-            if (count < 2)
-                continue;
-
-            this.shapeIndices.set(shape, this.shapes.length);
-            this.shapes.push(shape);
-        }
+        this.shapeEntries = [];
+        this.lastShapeEntry = null;
+        this.nextShapeIndex = 0;
 
         //Write magic
         this.writer.writeByte(GLORP_MAGIC);
@@ -508,16 +529,8 @@ export class BufferedEncoder {
         //Compute flags
         let flagsByte = 0x00;
 
-        const hasShapes = this.shapes.length > 0;
-        if (hasShapes)
-            flagsByte |= FlAGS.TAB_SHAPES;
-
         //write flags byte
         this.writer.writeByte(flagsByte);
-
-        //Encode fitting tables
-        if (hasShapes)
-            this.encodeArray(this.shapes);
 
         //Encode actual data
         this.encodeUnknown(data);

@@ -303,6 +303,15 @@ export class BufferedWriter {
         return this.offset;
     }
 
+    public writeString(value: string, byteLength: number, encoding: BufferEncoding): number {
+        this.ensureAtLeast(byteLength);
+
+        const written = this.buffer.write(value, this.offset, byteLength, encoding);
+        this.offset += written;
+
+        return this.offset;
+    }
+
     public finish(): ByteBuffer {
         return this.buffer.subarray(0, this.offset);
     }

@@ -33,6 +33,7 @@ export declare class BufferedWriter {
     writeDoubleBE(value: number): number;
     writeBuffer(value: Buffer): number;
     writeByte(value: number): number;
+    writeString(value: string, byteLength: number, encoding: BufferEncoding): number;
     finish(): ByteBuffer;
     reset(): void;
 }

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {performance} from "node:perf_hooks";
 
 import {GLORP} from "../src/index.js";
+import {writeFileSync} from "node:fs";
 
 type User = {
     userId: string;
@@ -51,6 +52,9 @@ test("GLORP vs JSON benchmark", () => {
     for (let i = 0; i < iterations; i++)
         glorpEncoded = GLORP.encode(users);
 
+/*
+    writeFileSync("1000_users.hex", glorpEncoded);
+*/
     const glorpEncodeTime = performance.now() - glorpEncodeStart;
 
     let jsonEncoded!: string;

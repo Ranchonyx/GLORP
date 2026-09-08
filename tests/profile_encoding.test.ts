@@ -33,15 +33,28 @@ const input: User[] = Array.from({length: 1_000}, (_, i) => ({
 }));
 
 test("profile encoding", () => {
-    //V8 warm laufen lassen
     for (let i = 0; i < 100; i++)
         GLORP.encode(input);
 
     let checksum = 0;
-    const end = performance.now() + 10_000;
+    let iterations = 0;
 
-    while (performance.now() < end)
+    const start = performance.now();
+    const end = start + 10_000;
+
+    while (performance.now() < end) {
         checksum += GLORP.encode(input).length;
+        iterations++;
+    }
+
+    const elapsed = performance.now() - start;
+
+    console.log({
+        iterations,
+        elapsed,
+        encodesPerSecond: iterations / (elapsed / 1_000),
+        checksum
+    });
 
     assert.ok(checksum > 0);
 });
