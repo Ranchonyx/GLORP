@@ -5,6 +5,6 @@ export declare class InvalidArgumentRangeError extends Error {
     constructor(argument: unknown, max: number | bigint, min?: number | bigint);
 }
 export declare class InvalidBytecodeDecodeError extends Error {
-    constructor(targetType: string, bytecode: Buffer);
+    constructor(targetType: string, bytecode: number);
 }
 //# sourceMappingURL=Errors.d.ts.map

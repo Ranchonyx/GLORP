@@ -1,5 +1,3 @@
-//Generic Lightweight Object Representation Protocol.
-
 export enum TAGS {
     PI = 0x00,              //positive infinity
     NI = 0x01,              //negative infinity
@@ -81,10 +79,6 @@ export enum SymbolState {
     DEFINED
 }
 
-export type SymbolEntry = {
-    state: SymbolState;
-    index: number;
-}
 export type ShapeEntry = {
     index?: number;
     state: SymbolState;

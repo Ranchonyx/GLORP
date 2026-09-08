@@ -58,10 +58,6 @@ export declare enum SymbolState {
     UNIQUE = 0,
     DEFINED = 1
 }
-export type SymbolEntry = {
-    state: SymbolState;
-    index: number;
-};
 export type ShapeEntry = {
     index?: number;
     state: SymbolState;

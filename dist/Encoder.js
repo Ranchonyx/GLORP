@@ -383,15 +383,6 @@ export class BufferedEncoder {
         this.encodeNumber(entry.index);
         this.encodeShapeValues(data, entry);
     }
-    encodeStringDefinition(data, entry) {
-        this.writer.writeByte(TAGS.SP_STRING_DEF);
-        this.encodeNumber(entry.index);
-        this.encodeStringUTFOrASCII(data);
-    }
-    encodeStringReference(entry) {
-        this.writer.writeByte(TAGS.SP_STRING_REF);
-        this.encodeNumber(entry.index);
-    }
     constructor(writer) {
         this.writer = writer;
     }

@@ -1,7 +1,8 @@
 import {BufferedEncoder} from "./Encoder.js";
-import {Decoder} from "./Decoder.js";
-import {ByteBufferStream} from "./Util/ByteBufferStream.js";
+import {BufferedDecoder} from "./Decoder.js";
 import {BufferedWriter} from "./Util/BufferedWriter.js";
+import {BufferedReader} from "./Util/BufferedReader.js";
+import {ByteBuffer} from "./Util/ByteBuffer.js";
 
 /**
  * The **`GLORP`** static class contains static methods for decoding values from and encoding values to the GLORP format
@@ -14,7 +15,7 @@ export class GLORP {
      * @param buffer - The **`GLORP`**-encoded data to decode.
      * */
     public static decode<T = unknown>(buffer: Buffer): T {
-        return new Decoder(new ByteBufferStream(buffer)).Decode<T>();
+        return new BufferedDecoder(new BufferedReader(ByteBuffer.fromBuffer(buffer))).Decode<T>();
     }
 
     /**

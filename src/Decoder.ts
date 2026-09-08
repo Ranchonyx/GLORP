@@ -1,17 +1,12 @@
 import {GLORP_MAGIC, ShapeNode, TAGS} from "./Util/Constants.js";
-import {decodeNumber} from "./Decoders/NumberDecoder.js";
-import {decodeString} from "./Decoders/StringDecoder.js";
-import {decodeBoolean} from "./Decoders/BooleanDecoder.js";
-import {decodeAbsence} from "./Decoders/AbsenceDecoder.js";
-import {decodeDate} from "./Decoders/DateDecoder.js";
-import {ByteBufferStream} from "./Util/ByteBufferStream.js";
 import {InvalidBytecodeDecodeError} from "./Util/Errors.js";
+import {BufferedReader} from "./Util/BufferedReader";
 
-export class Decoder {
+export class BufferedDecoder {
     private stringData = new Map<number, string>();
     private shapeData = new Map<number, ShapeNode>
 
-    public constructor(private stream: ByteBufferStream) {
+    public constructor(private stream: BufferedReader) {
     }
 
     private rehydrateShape(shape: ShapeNode, values: unknown): unknown {
@@ -53,71 +48,126 @@ export class Decoder {
         return result;
     }
 
-    private decodeNumber() {
-        const slice = this.stream.peekSlice();
-        const {value, bytesRead} = decodeNumber(slice);
+    private decodeNumber(): number | bigint {
+        const tag = this.stream.readByte();
 
-        this.stream.skip(bytesRead);
+        switch (tag) {
+            case TAGS.PI:
+                return +Infinity;
+            case TAGS.NI:
+                return -Infinity;
+            case TAGS.NN:
+                return NaN
+            case TAGS.PZ:
+                return +0;
+            case TAGS.NZ:
+                return -0;
 
-        return value;
+            case TAGS.U8:
+                return this.stream.readUInt8()
+            case TAGS.U16:
+                return this.stream.readUInt16BE();
+            case TAGS.U24:
+                return this.stream.readUInt24BE();
+            case TAGS.U32:
+                return this.stream.readUInt32BE();
+            case TAGS.U48:
+                return this.stream.readUInt48BE();
+            case TAGS.U56:
+                return this.stream.readBigUInt56BE();
+            case TAGS.UBI:
+                return this.stream.readBigUInt64BE();
+
+            case TAGS.S8:
+                return this.stream.readInt8()
+            case TAGS.S16:
+                return this.stream.readInt16BE();
+            case TAGS.S24:
+                return this.stream.readInt24BE();
+            case TAGS.S32:
+                return this.stream.readInt32BE();
+            case TAGS.S48:
+                return this.stream.readInt48BE();
+            case TAGS.S56:
+                return this.stream.readInt32BE();
+            case TAGS.SBI:
+                return this.stream.readBigInt64BE();
+
+            case TAGS.F32:
+                return this.stream.readFloatBE();
+            case TAGS.F64:
+                return this.stream.readDoubleBE();
+        }
+
+        throw new InvalidBytecodeDecodeError(`number | bigint`, this.stream.peekByte());
     }
 
-    private decodeString() {
-        const slice = this.stream.peekSlice();
-        const {value, bytesRead} = decodeString(slice);
+    private decodeString(): string {
+        const tag = this.stream.readByte();
 
-        this.stream.skip(bytesRead);
+        switch (tag) {
+            case TAGS.STA8:
+                return this.stream.readString(this.stream.readUInt8(), "ascii");
+            case TAGS.STA16:
+                return this.stream.readString(this.stream.readUInt16BE(), "ascii");
+            case TAGS.STA24:
+                return this.stream.readString(this.stream.readUInt24BE(), "ascii");
+            case TAGS.STA32:
+                return this.stream.readString(this.stream.readUInt32BE(), "ascii");
+            case TAGS.STU8:
+                return this.stream.readString(this.stream.readUInt8(), "utf8");
+            case TAGS.STU16:
+                return this.stream.readString(this.stream.readUInt16BE(), "utf8");
+            case TAGS.STU24:
+                return this.stream.readString(this.stream.readUInt24BE(), "utf8");
+            case TAGS.STU32:
+                return this.stream.readString(this.stream.readUInt32BE(), "utf8");
+        }
 
-        return value;
+        throw new InvalidBytecodeDecodeError("string", this.stream.peekByte());
     }
 
-    private decodeBoolean() {
-        const slice = this.stream.peekSlice();
-        const {value, bytesRead} = decodeBoolean(slice);
+    private decodeBoolean(): boolean {
+        const tag = this.stream.readByte();
 
-        this.stream.skip(bytesRead);
+        switch (tag) {
+            case TAGS.TRU:
+                return true;
+            case TAGS.FLS:
+                return false;
+        }
 
-        return value;
+        throw new InvalidBytecodeDecodeError("boolean", this.stream.peekByte());
     }
 
     private decodeAbsence() {
-        const slice = this.stream.peekSlice();
-        const {value, bytesRead} = decodeAbsence(slice);
+        const tag = this.stream.readByte();
 
-        this.stream.skip(bytesRead);
+        if (tag === TAGS.ABS)
+            return null;
 
-        return value;
+        throw new InvalidBytecodeDecodeError("null", this.stream.peekByte());
     }
 
     private decodeArray() {
-        const tag = this.stream.peekByte() as TAGS;
-        const slice = this.stream.peekSlice();
-
+        const tag = this.stream.readByte() as TAGS;
         let elementCount: number;
 
         switch (tag) {
             case TAGS.ARR8:
-                elementCount = slice.readUInt8(1);
-                this.stream.skip(2);
+                elementCount = this.stream.readByte();
                 break;
-
             case TAGS.ARR16:
-                elementCount = slice.readUInt16BE(1);
-                this.stream.skip(3);
+                elementCount = this.stream.readUInt16BE();
                 break;
-
             case TAGS.ARR24:
-                elementCount = slice.readUInt24BE(1);
-                this.stream.skip(4);
+                elementCount = this.stream.readUInt24BE();
                 break;
-
             case TAGS.ARR32:
-                elementCount = slice.readUInt32BE(1);
-                this.stream.skip(5);
+                elementCount = this.stream.readUInt32BE();
                 break;
-
             default:
-                throw new InvalidBytecodeDecodeError("array", slice);
+                throw new InvalidBytecodeDecodeError("array", this.stream.peekByte());
         }
 
         const values: unknown[] = [];
@@ -130,45 +180,30 @@ export class Decoder {
     }
 
     private decodeRecord() {
-        const tag = this.stream.peekByte() as TAGS;
+        const tag = this.stream.readByte() as TAGS;
 
-        let entryCount: number;
+        let elementCount: number;
 
         switch (tag) {
-            case TAGS.REC8: {
-                const slice = this.stream.peekSlice();
-                entryCount = slice.readUInt8(1);
-                this.stream.skip(2);
+            case TAGS.REC8:
+                elementCount = this.stream.readByte();
                 break;
-            }
-
-            case TAGS.REC16: {
-                const slice = this.stream.peekSlice();
-                entryCount = slice.readUInt16BE(1);
-                this.stream.skip(3);
+            case TAGS.REC16:
+                elementCount = this.stream.readUInt16BE();
                 break;
-            }
-
-            case TAGS.REC24: {
-                const slice = this.stream.peekSlice();
-                entryCount = slice.readUInt24BE(1);
-                this.stream.skip(4);
+            case TAGS.REC24:
+                elementCount = this.stream.readUInt24BE();
                 break;
-            }
-
-            case TAGS.REC32: {
-                const slice = this.stream.peekSlice();
-                entryCount = slice.readUInt32BE(1);
-                this.stream.skip(5);
+            case TAGS.REC32:
+                elementCount = this.stream.readUInt32BE();
                 break;
-            }
             default:
-                throw new InvalidBytecodeDecodeError("record", this.stream.peekSlice());
+                throw new InvalidBytecodeDecodeError("record", this.stream.peekByte());
         }
 
         const record: Record<string, unknown> = {};
 
-        for (let i = 0; i < entryCount; i++) {
+        for (let i = 0; i < elementCount; i++) {
             const key = this.decodeString();
             record[key] = this.decodeUnknown();
         }
@@ -190,11 +225,10 @@ export class Decoder {
     private decodeStringReference() {
         this.stream.skip(1)
 
-        const {value: index, bytesRead} = decodeNumber(this.stream.peekSlice());
-        this.stream.skip(bytesRead);
+        const index = this.decodeNumber();
 
         const data = this.stringData.get(Number(index));
-        if (!data)
+        if (data === undefined)
             throw new Error(`While decoding string at index ${index}: No corresponding string found.`);
 
         return data;
@@ -222,19 +256,16 @@ export class Decoder {
     private decodeShapeReference() {
         this.stream.skip(1);
 
-        const indexResult = decodeNumber(this.stream.peekSlice());
-        this.stream.skip(indexResult.bytesRead);
+        const index = this.decodeNumber();
+        const count = this.decodeNumber();
 
-        const countResult = decodeNumber(this.stream.peekSlice());
-        this.stream.skip(countResult.bytesRead);
-
-        const shape = this.shapeData.get(Number(indexResult.value));
-        if (!shape)
-            throw new Error(`While decoding shape at index ${indexResult.value}: No corresponding shape found.`);
+        const shape = this.shapeData.get(Number(index));
+        if (shape === undefined)
+            throw new Error(`While decoding shape at index ${index}: No corresponding shape found.`);
 
         const values: unknown[] = [];
 
-        for (let i = 0; i < Number(countResult.value); i++) {
+        for (let i = 0; i < Number(count); i++) {
             values.push(this.decodeUnknown());
         }
 
@@ -242,12 +273,9 @@ export class Decoder {
     }
 
     private decodeDate() {
-        const slice = this.stream.peekSlice();
-        const {value, bytesRead} = decodeDate(slice);
-
-        this.stream.skip(bytesRead);
-
-        return value;
+        this.stream.skip(1);
+        const encodedEpoch = this.stream.readInt56BE();
+        return new Date(encodedEpoch);
     }
 
     private decodeUnknown(): unknown {
@@ -297,7 +325,7 @@ export class Decoder {
             return this.decodeStringReference();
         }
 
-        throw new InvalidBytecodeDecodeError("unknown", this.stream.peekSlice())
+        throw new InvalidBytecodeDecodeError("unknown", this.stream.peekByte())
     }
 
     public Decode<T = unknown>(): T {

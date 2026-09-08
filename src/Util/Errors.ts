@@ -13,8 +13,8 @@ export class InvalidArgumentRangeError extends Error {
 }
 
 export class InvalidBytecodeDecodeError extends Error {
-    public constructor(targetType: string, bytecode: Buffer) {
-        super(`Unable to decode bytecode ${bytecode.toString("hex")} into type ${targetType}.`);
+    public constructor(targetType: string, bytecode: number) {
+        super(`Unable to decode bytecode 0x${bytecode.toString(16)} into type ${targetType}.`);
         Object.setPrototypeOf(this, InvalidBytecodeDecodeError.prototype);
     }
 }

@@ -31,7 +31,6 @@ export declare class BufferedWriter {
     writeInt32BE(value: number): number;
     writeFloatBE(value: number): number;
     writeDoubleBE(value: number): number;
-    writeBuffer(value: Buffer): number;
     writeByte(value: number): number;
     writeString(value: string, byteLength: number, encoding: BufferEncoding): number;
     finish(): ByteBuffer;

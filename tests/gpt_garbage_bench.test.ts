@@ -4,6 +4,16 @@ import {performance} from "node:perf_hooks";
 import {cpus} from "node:os";
 
 import {GLORP} from "../dist/index.js";
+import {createRequire} from "node:module";
+import {writeFileSync} from "node:fs";
+
+const require = createRequire(import.meta.url);
+
+const {
+    encode: encodeMessagePack,
+    decode: decodeMessagePack
+// @ts-expect-error
+} = require("@msgpack/msgpack") as typeof import("@msgpack/msgpack");
 
 type User = {
     userId: string;
@@ -13,14 +23,25 @@ type User = {
     familyName: string;
     christianName: string;
 };
-
 const users: User[] = Array.from({length: 1_000}, (_, i) => ({
     userId: `usr-${i.toString().padStart(4, "0")}`,
     username: `user.${i}`,
     age: 18 + (i % 63),
     sex: (["m", "f", "d"] as const)[i % 3],
-    familyName: ["Müller", "Schmidt", "Schneider", "Fischer", "Weber"][i % 5],
-    christianName: ["Anna", "Max", "Felix", "Lena", "Jonas"][i % 5]
+    familyName: [
+        "Müller",
+        "Schmidt",
+        "Schneider",
+        "Fischer",
+        "Weber"
+    ][i % 5],
+    christianName: [
+        "Anna",
+        "Max",
+        "Felix",
+        "Lena",
+        "Jonas"
+    ][i % 5]
 }));
 
 function median(values: readonly number[]): number {
@@ -38,16 +59,36 @@ type BenchmarkCase = {
     check: () => void;
     samples: number[];
 };
-
-test("GLORP vs JSON benchmark", () => {
-    const iterations = 1_000;
-    const rounds = 7;
-    const warmupIterations = 200;
+test("GLORP vs JSON vs MessagePack — repeated users", () => {
+    const iterations = 100;
+    const rounds = 8;
+    const warmupIterations = 100;
 
     // Copy once so decoder input remains independent of writer reuse.
     const glorpBytes = Buffer.from(GLORP.encode(users));
     const jsonString = JSON.stringify(users);
     const jsonBytes = Buffer.from(jsonString, "utf8");
+    const messagePackBytes = encodeMessagePack(users);
+
+    assert.deepStrictEqual(
+        decodeMessagePack(messagePackBytes),
+        users
+    );
+
+    let messagePackEncoded: Uint8Array = messagePackBytes;
+    let messagePackDecoded: unknown;
+
+    function equalBytes(a: Uint8Array, b: Uint8Array): boolean {
+        if (a.byteLength !== b.byteLength)
+            return false;
+
+        for (let i = 0; i < a.byteLength; i++) {
+            if (a[i] !== b[i])
+                return false;
+        }
+
+        return true;
+    }
 
     assert.deepStrictEqual(GLORP.decode(glorpBytes), users);
     assert.deepStrictEqual(JSON.parse(jsonString), users);
@@ -132,6 +173,29 @@ test("GLORP vs JSON benchmark", () => {
                 assert.deepStrictEqual(jsonBytesDecoded, users);
             },
             samples: []
+        },
+        {
+            name: "MessagePack encode",
+            run: () => {
+                messagePackEncoded = encodeMessagePack(users);
+            },
+            check: () => {
+                assert.ok(
+                    equalBytes(messagePackEncoded, messagePackBytes),
+                    "MessagePack encoded bytes changed"
+                );
+            },
+            samples: []
+        },
+        {
+            name: "MessagePack decode",
+            run: () => {
+                messagePackDecoded = decodeMessagePack(messagePackBytes);
+            },
+            check: () => {
+                assert.deepStrictEqual(messagePackDecoded, users);
+            },
+            samples: []
         }
     ];
 
@@ -158,6 +222,10 @@ test("GLORP vs JSON benchmark", () => {
 
             // Assertions and result inspection are outside the timer.
             benchmark.check();
+            console.log(
+                `Round ${round + 1}/${rounds} | ${benchmark.name}: ` +
+                `${(elapsed / iterations).toFixed(3)} ms/payload`
+            );
         }
     }
 
@@ -181,7 +249,7 @@ test("GLORP vs JSON benchmark", () => {
             description:
                 "1,000 synthetic users with identical record layouts " +
                 "and repeated names; uncompressed output",
-            users: users.length,
+            records: users.length,
             iterationsPerRound: iterations,
             rounds,
             warmupIterations
@@ -189,19 +257,14 @@ test("GLORP vs JSON benchmark", () => {
         size: {
             glorpBytes: glorpBytes.length,
             jsonUtf8Bytes: jsonBytes.length,
-            savedPercent:
-                (1 - glorpBytes.length / jsonBytes.length) * 100
+            messagePackBytes: messagePackBytes.length,
+            glorpSavedVsJsonPercent:
+                (1 - glorpBytes.length / jsonBytes.length) * 100,
+            messagePackSavedVsJsonPercent:
+                (1 - messagePackBytes.length / jsonBytes.length) * 100
         },
         measurements
     };
-
-    console.log("\n--- GLORP vs JSON ---");
-    console.log(result.environment);
-    console.log(
-        `\nGLORP: ${glorpBytes.length} bytes` +
-        `\nJSON UTF-8: ${jsonBytes.length} bytes` +
-        `\nSpace saved: ${result.size.savedPercent.toFixed(2)}%`
-    );
 
     console.table(measurements.map(measurement => ({
         operation: measurement.name,

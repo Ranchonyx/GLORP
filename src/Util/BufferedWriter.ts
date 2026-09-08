@@ -286,15 +286,6 @@ export class BufferedWriter {
         return this.offset;
     }
 
-    public writeBuffer(value: Buffer): number {
-        this.ensureAtLeast(value.byteLength);
-
-        value.copy(this.buffer, this.offset);
-        this.offset += value.byteLength;
-
-        return this.offset;
-    }
-
     public writeByte(value: number): number {
         this.ensureAtLeast(1);
 

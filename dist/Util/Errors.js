@@ -12,7 +12,7 @@ export class InvalidArgumentRangeError extends Error {
 }
 export class InvalidBytecodeDecodeError extends Error {
     constructor(targetType, bytecode) {
-        super(`Unable to decode bytecode ${bytecode.toString("hex")} into type ${targetType}.`);
+        super(`Unable to decode bytecode 0x${bytecode.toString(16)} into type ${targetType}.`);
         Object.setPrototypeOf(this, InvalidBytecodeDecodeError.prototype);
     }
 }

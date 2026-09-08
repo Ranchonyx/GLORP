@@ -1,4 +1,3 @@
-//Generic Lightweight Object Representation Protocol.
 export var TAGS;
 (function (TAGS) {
     TAGS[TAGS["PI"] = 0] = "PI";

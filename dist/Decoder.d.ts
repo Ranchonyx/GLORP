@@ -1,9 +1,9 @@
-import { ByteBufferStream } from "./Util/ByteBufferStream.js";
-export declare class Decoder {
+import { BufferedReader } from "./Util/BufferedReader";
+export declare class BufferedDecoder {
     private stream;
     private stringData;
     private shapeData;
-    constructor(stream: ByteBufferStream);
+    constructor(stream: BufferedReader);
     private rehydrateShape;
     private decodeNumber;
     private decodeString;

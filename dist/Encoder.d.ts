@@ -28,8 +28,6 @@ export declare class BufferedEncoder {
     private encodeShapeValues;
     private encodeShapeDefinition;
     private encodeShapeReference;
-    private encodeStringDefinition;
-    private encodeStringReference;
     constructor(writer: BufferedWriter);
     Encode(data: unknown): Buffer;
 }
