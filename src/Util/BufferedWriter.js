@@ -1,5 +1,5 @@
-import { ByteBuffer } from "./ByteBuffer.js";
-import { InvalidArgumentRangeError } from "./Errors.js";
+import { ByteBuffer } from "./ByteBuffer";
+import { InvalidArgumentRangeError } from "./Errors";
 export class BufferedWriter {
     buffer;
     offset = 0;
@@ -16,7 +16,7 @@ export class BufferedWriter {
         //All good
         if (needed <= this.buffer.byteLength)
             return;
-        const newSz = Math.max(needed, this.buffer.byteLength > 0 ? this.buffer.byteLength * 2 : 0xff);
+        const newSz = Math.max(this.buffer.byteLength > 0 ? this.buffer.byteLength * 2 : 0xff);
         this.resizeTo(newSz);
     }
     writeUInt24BE(value) {
@@ -177,4 +177,3 @@ export class BufferedWriter {
         this.offset = 0;
     }
 }
-//# sourceMappingURL=BufferedWriter.js.map

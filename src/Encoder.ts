@@ -1,4 +1,4 @@
-import {FlAGS, GLORP_MAGIC, ShapeNode, StringifiedShape, TAGS} from "./Util/Constants.js";
+import {FlAGS, GLORP_MAGIC, ShapeNode, StringEntry, StringifiedShape, StringState, TAGS} from "./Util/Constants.js";
 import {InvalidArgumentEncodeError, InvalidArgumentRangeError} from "./Util/Errors.js";
 import {BufferedWriter} from "./Util/BufferedWriter";
 
@@ -6,8 +6,7 @@ export class BufferedEncoder {
     private shapes: StringifiedShape[] = [];
     private shapeIndices = new Map<StringifiedShape, number>();
 
-    private strings: string[] = [];
-    private stringIndices = new Map<string, number>();
+    private stringData = new Map<string, StringEntry>();
 
     private dehydrateToShape(input: unknown): ShapeNode {
         const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -89,7 +88,7 @@ export class BufferedEncoder {
 
         if (len <= 0xff_ff_ff_ff) {
             this.writer.writeByte(TAGS.STA32);
-            this.writer.writeUInt24BE(len);
+            this.writer.writeUInt32BE(len);
             this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
             return;
         }
@@ -388,10 +387,25 @@ export class BufferedEncoder {
     private encodeUnknown(data: unknown, createStringReferences: boolean = true) {
         //Check if we need to encode a primitive first
         if (typeof data === "string" && createStringReferences) {
-            //Check if string is in dict and then write ref
-            const stringIndex = this.stringIndices.get(data);
-            if (stringIndex !== undefined)
-                return this.encodeStringReference(stringIndex);
+
+            const entry = this.stringData.get(data);
+
+            //If we do not have a stringdata entry
+            if (entry === undefined) {
+                //Create it but encode it as a normal string
+                this.stringData.set(data, {index: this.stringData.size, state: StringState.UNIQUE});
+                return this.encodeString(data);
+            } else {
+                //If we do have an entry, check state
+                if (entry.state === StringState.UNIQUE) {
+                    //If it's unique until now, make it defined and encode a string definition
+                    entry.state = StringState.DEFINED;
+                    return this.encodeStringDefinition(data, entry);
+                } else {
+                    //If it's already defined, encode a reference
+                    return this.encodeStringReference(entry);
+                }
+            }
         }
 
         if (this.isPrimitive(data))
@@ -429,9 +443,15 @@ export class BufferedEncoder {
         }
     }
 
-    private encodeStringReference(index: number): void {
+    private encodeStringDefinition(data: string, entry: StringEntry): void {
+        this.writer.writeByte(TAGS.SP_STRING_DEF);
+        this.encodeNumber(entry.index);
+        this.encodeString(data);
+    }
+
+    private encodeStringReference(entry: StringEntry): void {
         this.writer.writeByte(TAGS.SP_STRING_REF);
-        this.encodeNumber(index);
+        this.encodeNumber(entry.index);
     }
 
     public constructor(private writer: BufferedWriter) {
@@ -441,33 +461,32 @@ export class BufferedEncoder {
         this.shapes = [];
         this.shapeIndices.clear();
 
-        this.strings = [];
-        this.stringIndices.clear();
+        this.stringData.clear();
 
         const shapeCounts = new Map<StringifiedShape, number>();
-        const stringCounts = new Map<string, number>();
 
         const scan = (value: unknown) => {
-            //nur interesse an arrays oder records deshalb yeet
-            //auch interesse an strings seit Neustem
-            if (value === null || (this.isPrimitive(value) && typeof value !== "string") || value instanceof Date)
+            if (value === null || value === undefined)
                 return;
 
-            if (Array.isArray(value)) {
-                value.forEach(v => scan(v));
-                return;
-            }
+            const type = typeof value;
+            switch (type) {
+                case "object":
+                    if (Array.isArray(value)) {
+                        for (let i = 0; i < value.length; i++)
+                            scan(value[i]);
+                        return;
+                    }
 
-            if (typeof value === "string") {
-                stringCounts.set(value, (stringCounts.get(value) || 0) + 1);
-                return;
-            }
+                    if (Object.getPrototypeOf(value) === Date.prototype)
+                        return;
 
-            if (typeof value === "object") {
-                const shape: StringifiedShape = JSON.stringify(this.dehydrateToShape(value));
-                shapeCounts.set(shape, (shapeCounts.get(shape) || 0) + 1);
+                    const shape: StringifiedShape = JSON.stringify(this.dehydrateToShape(value));
+                    shapeCounts.set(shape, (shapeCounts.get(shape) || 0) + 1);
 
-                Object.values(value).forEach(v => scan(v));
+                    for (const key of Object.keys(value))
+                        scan((value as Record<string, unknown>)[key]);
+                    return;
             }
         };
 
@@ -483,27 +502,15 @@ export class BufferedEncoder {
             this.shapes.push(shape);
         }
 
-        for (const [string, count] of stringCounts) {
-            if (count < 2)
-                continue;
-
-            this.stringIndices.set(string, this.strings.length);
-            this.strings.push(string);
-        }
-
-
         //Write magic
         this.writer.writeByte(GLORP_MAGIC);
 
         //Compute flags
         let flagsByte = 0x00;
+
         const hasShapes = this.shapes.length > 0;
         if (hasShapes)
             flagsByte |= FlAGS.TAB_SHAPES;
-
-        const hasStrings = this.strings.length > 0;
-        if (hasStrings)
-            flagsByte |= FlAGS.TAB_STRINGS;
 
         //write flags byte
         this.writer.writeByte(flagsByte);
@@ -511,9 +518,6 @@ export class BufferedEncoder {
         //Encode fitting tables
         if (hasShapes)
             this.encodeArray(this.shapes);
-
-        if (hasStrings)
-            this.encodeArray(this.strings, false);
 
         //Encode actual data
         this.encodeUnknown(data);

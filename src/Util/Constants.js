@@ -43,9 +43,8 @@ export var TAGS;
     TAGS[TAGS["REC32"] = 39] = "REC32";
     TAGS[TAGS["DATE"] = 40] = "DATE";
     TAGS[TAGS["SP_SHAPE_REF"] = 41] = "SP_SHAPE_REF";
-    TAGS[TAGS["SP_STRING_DEF"] = 42] = "SP_STRING_DEF";
-    TAGS[TAGS["SP_STRING_REF"] = 43] = "SP_STRING_REF";
-    TAGS[TAGS["SP_RUN"] = 44] = "SP_RUN"; //Indicates a run of elements of the same type
+    TAGS[TAGS["SP_STRING_REF"] = 42] = "SP_STRING_REF";
+    TAGS[TAGS["SP_RUN"] = 43] = "SP_RUN"; //Indicates a run of elements of the same type
 })(TAGS || (TAGS = {}));
 export var FlAGS;
 (function (FlAGS) {
@@ -58,9 +57,3 @@ export const GLORP_MAGIC = GLORP_STRING.charCodeAt(0) |
     GLORP_STRING.charCodeAt(2) |
     GLORP_STRING.charCodeAt(3) |
     GLORP_STRING.charCodeAt(4);
-export var StringState;
-(function (StringState) {
-    StringState[StringState["UNIQUE"] = 0] = "UNIQUE";
-    StringState[StringState["DEFINED"] = 1] = "DEFINED";
-})(StringState || (StringState = {}));
-//# sourceMappingURL=Constants.js.map

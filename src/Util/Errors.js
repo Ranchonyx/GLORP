@@ -16,4 +16,3 @@ export class InvalidBytecodeDecodeError extends Error {
         Object.setPrototypeOf(this, InvalidBytecodeDecodeError.prototype);
     }
 }
-//# sourceMappingURL=Errors.js.map

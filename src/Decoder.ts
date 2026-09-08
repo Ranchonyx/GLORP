@@ -9,7 +9,7 @@ import {InvalidBytecodeDecodeError} from "./Util/Errors.js";
 
 export class Decoder {
     private shapes: ShapeNode[] = [];
-    private strings: string[] = [];
+    private stringData = new Map<number, string>();
 
     public constructor(private stream: ByteBufferStream) {
     }
@@ -170,12 +170,21 @@ export class Decoder {
 
         for (let i = 0; i < entryCount; i++) {
             const key = this.decodeString();
-            const value = this.decodeUnknown();
-
-            record[key] = value;
+            record[key] = this.decodeUnknown();
         }
 
         return record;
+    }
+
+    private decodeStringDefinition() {
+        this.stream.skip(1);
+
+        const stringDataIndex = this.decodeNumber();
+        const stringDataValue = this.decodeString();
+
+        this.stringData.set(Number(stringDataIndex), stringDataValue);
+
+        return stringDataValue;
     }
 
     private decodeStringReference() {
@@ -183,7 +192,7 @@ export class Decoder {
         const {value: index, bytesRead} = decodeNumber(this.stream.peekSlice());
         this.stream.skip(bytesRead);
 
-        return this.strings[Number(index)];
+        return this.stringData.get(Number(index));
     }
 
     private decodeShapeReference() {
@@ -252,6 +261,10 @@ export class Decoder {
             return this.decodeShapeReference();
         }
 
+        if (tag === TAGS.SP_STRING_DEF) {
+            return this.decodeStringDefinition();
+        }
+
         if (tag === TAGS.SP_STRING_REF) {
             return this.decodeStringReference();
         }
@@ -271,9 +284,8 @@ export class Decoder {
         this.stream.skip(1);
 
         const hasShapeTable = (flags & FlAGS.TAB_SHAPES) !== 0;
-        const hasStringTable = (flags & FlAGS.TAB_STRINGS) !== 0;
 
-        if (hasShapeTable || hasStringTable)
+        if (hasShapeTable)
             if (!(
                 this.stream.peekByte() === TAGS.ARR8 ||
                 this.stream.peekByte() === TAGS.ARR16 ||
@@ -287,14 +299,6 @@ export class Decoder {
             const decodedShapeArray = this.decodeArray() as StringifiedShape[];
             for (const decodedShape of decodedShapeArray) {
                 this.shapes.push(JSON.parse(decodedShape));
-            }
-        }
-
-        if (hasStringTable) {
-            //Parse shapes
-            const decodedStringArray = this.decodeArray() as string[];
-            for (const decodedString of decodedStringArray) {
-                this.strings.push(decodedString);
             }
         }
 

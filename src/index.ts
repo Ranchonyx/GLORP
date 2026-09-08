@@ -1,7 +1,7 @@
 import {BufferedEncoder} from "./Encoder.js";
 import {Decoder} from "./Decoder.js";
 import {ByteBufferStream} from "./Util/ByteBufferStream.js";
-import {BufferedWriter} from "./Util/BufferedWriter";
+import {BufferedWriter} from "./Util/BufferedWriter.js";
 
 /**
  * The **`GLORP`** static class contains static methods for decoding values from and encoding values to the GLORP format

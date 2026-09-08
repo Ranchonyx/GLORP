@@ -1,4 +1,4 @@
-import { ByteBuffer } from "./ByteBuffer";
+import { ByteBuffer } from "./ByteBuffer.js";
 export declare class BufferedWriter {
     private buffer;
     private offset;
@@ -16,6 +16,10 @@ export declare class BufferedWriter {
     writeBigUInt56BE(value: bigint): number;
     writeBigInt56BE(value: bigint): number;
     readBigUInt56BE(offset?: number): bigint;
+    writeBigUInt64BE(value: bigint): number;
+    readBigUInt64BE(offset?: number): bigint;
+    writeBigInt64BE(value: bigint): number;
+    readBigInt64BE(offset?: number): bigint;
     readBigInt56BE(offset?: number): bigint;
     writeInt56BE(value: number): number;
     readInt56BE(offset?: number): number;
@@ -30,5 +34,6 @@ export declare class BufferedWriter {
     writeBuffer(value: Buffer): number;
     writeByte(value: number): number;
     finish(): ByteBuffer;
+    reset(): void;
 }
 //# sourceMappingURL=BufferedWriter.d.ts.map

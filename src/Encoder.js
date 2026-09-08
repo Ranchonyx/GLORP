@@ -1,10 +1,11 @@
-import { FlAGS, GLORP_MAGIC, StringState, TAGS } from "./Util/Constants.js";
+import { FlAGS, GLORP_MAGIC, TAGS } from "./Util/Constants.js";
 import { InvalidArgumentEncodeError, InvalidArgumentRangeError } from "./Util/Errors.js";
 export class BufferedEncoder {
     writer;
     shapes = [];
     shapeIndices = new Map();
-    stringData = new Map();
+    strings = [];
+    stringIndices = new Map();
     dehydrateToShape(input) {
         const isRecord = (value) => typeof value === "object" &&
             value !== null &&
@@ -29,25 +30,25 @@ export class BufferedEncoder {
             this.writer.writeBuffer(Buffer.from(utf8String, "utf8"));
             return;
         }
-        if (len <= 0xff_ff) {
+        if (len <= 65535) {
             this.writer.writeByte(TAGS.STU16);
             this.writer.writeUInt16BE(len);
             this.writer.writeBuffer(Buffer.from(utf8String, "utf8"));
             return;
         }
-        if (len <= 0xff_ff_ff) {
+        if (len <= 16777215) {
             this.writer.writeByte(TAGS.STU24);
             this.writer.writeUInt24BE(len);
             this.writer.writeBuffer(Buffer.from(utf8String, "utf8"));
             return;
         }
-        if (len <= 0xff_ff_ff_ff) {
+        if (len <= 4294967295) {
             this.writer.writeByte(TAGS.STU32);
             this.writer.writeUInt32BE(len);
             this.writer.writeBuffer(Buffer.from(utf8String, "utf8"));
             return;
         }
-        throw new InvalidArgumentRangeError(utf8String, 0xff_ff_ff_ff);
+        throw new InvalidArgumentRangeError(utf8String, 4294967295);
     }
     encodeASCIIString(asciiString, len) {
         if (len <= 0xff) {
@@ -56,25 +57,25 @@ export class BufferedEncoder {
             this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
             return;
         }
-        if (len <= 0xff_ff) {
+        if (len <= 65535) {
             this.writer.writeByte(TAGS.STA16);
             this.writer.writeUInt16BE(len);
             this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
             return;
         }
-        if (len <= 0xff_ff_ff) {
+        if (len <= 16777215) {
             this.writer.writeByte(TAGS.STA24);
             this.writer.writeUInt24BE(len);
             this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
             return;
         }
-        if (len <= 0xff_ff_ff_ff) {
+        if (len <= 4294967295) {
             this.writer.writeByte(TAGS.STA32);
-            this.writer.writeUInt32BE(len);
+            this.writer.writeUInt24BE(len);
             this.writer.writeBuffer(Buffer.from(asciiString, "ascii"));
             return;
         }
-        throw new InvalidArgumentRangeError(asciiString, 0xff_ff_ff_ff);
+        throw new InvalidArgumentRangeError(asciiString, 4294967295);
     }
     encodeString(x) {
         const byteLength = Buffer.byteLength(x);
@@ -109,22 +110,22 @@ export class BufferedEncoder {
                 this.writer.writeUInt8(positiveInteger);
                 return;
             }
-            if (positiveInteger <= 0xff_ff) {
+            if (positiveInteger <= 65535) {
                 this.writer.writeByte(TAGS.U16);
                 this.writer.writeUInt16BE(positiveInteger);
                 return;
             }
-            if (positiveInteger <= 0xff_ff_ff) {
+            if (positiveInteger <= 16777215) {
                 this.writer.writeByte(TAGS.U24);
                 this.writer.writeUInt24BE(positiveInteger);
                 return;
             }
-            if (positiveInteger <= 0xff_ff_ff_ff) {
+            if (positiveInteger <= 4294967295) {
                 this.writer.writeByte(TAGS.U32);
                 this.writer.writeUInt32BE(positiveInteger);
                 return;
             }
-            if (positiveInteger <= 0xff_ff_ff_ff_ff_ff) {
+            if (positiveInteger <= 281474976710655) {
                 this.writer.writeByte(TAGS.U48);
                 this.writer.writeUInt48BE(positiveInteger);
                 return;
@@ -257,22 +258,22 @@ export class BufferedEncoder {
                 this.writer.writeByte(count);
                 return;
             }
-            if (count <= 0xff_ff) {
+            if (count <= 65535) {
                 this.writer.writeByte(TAGS.ARR16);
                 this.writer.writeUInt16BE(count);
                 return;
             }
-            if (count <= 0xff_ff_ff) {
+            if (count <= 16777215) {
                 this.writer.writeByte(TAGS.ARR24);
                 this.writer.writeUInt24BE(count);
                 return;
             }
-            if (count <= 0xff_ff_ff_ff) {
+            if (count <= 4294967295) {
                 this.writer.writeByte(TAGS.ARR32);
                 this.writer.writeUInt32BE(count);
                 return;
             }
-            throw new InvalidArgumentRangeError(array, 0xff_ff_ff_ff);
+            throw new InvalidArgumentRangeError(array, 4294967295);
         };
         encodeMeta(array.length);
         for (const element of array)
@@ -285,22 +286,22 @@ export class BufferedEncoder {
                 this.writer.writeByte(len);
                 return;
             }
-            if (len <= 0xff_ff) {
+            if (len <= 65535) {
                 this.writer.writeByte(TAGS.REC16);
                 this.writer.writeUInt16BE(len);
                 return;
             }
-            if (len <= 0xff_ff_ff) {
+            if (len <= 16777215) {
                 this.writer.writeByte(TAGS.REC24);
                 this.writer.writeUInt24BE(len);
                 return;
             }
-            if (len <= 0xff_ff_ff_ff) {
+            if (len <= 4294967295) {
                 this.writer.writeByte(TAGS.REC32);
                 this.writer.writeUInt32BE(len);
                 return;
             }
-            throw new InvalidArgumentRangeError(data, 0xff_ff_ff_ff);
+            throw new InvalidArgumentRangeError(data, 4294967295);
         };
         const entries = Object.entries(data);
         encodeMeta(entries.length);
@@ -312,25 +313,10 @@ export class BufferedEncoder {
     encodeUnknown(data, createStringReferences = true) {
         //Check if we need to encode a primitive first
         if (typeof data === "string" && createStringReferences) {
-            const entry = this.stringData.get(data);
-            //If we do not have a stringdata entry
-            if (entry === undefined) {
-                //Create it but encode it as a normal string
-                this.stringData.set(data, { index: this.stringData.size, state: StringState.UNIQUE });
-                return this.encodeString(data);
-            }
-            else {
-                //If we do have an entry, check state
-                if (entry.state === StringState.UNIQUE) {
-                    //If it's unique until now, make it defined and encode a string definition
-                    entry.state = StringState.DEFINED;
-                    return this.encodeStringDefinition(data, entry);
-                }
-                else {
-                    //If it's already defined, encode a reference
-                    return this.encodeStringReference(entry);
-                }
-            }
+            //Check if string is in dict and then write ref
+            const stringIndex = this.stringIndices.get(data);
+            if (stringIndex !== undefined)
+                return this.encodeStringReference(stringIndex);
         }
         if (this.isPrimitive(data))
             return this.encodePrimitive(data);
@@ -358,14 +344,9 @@ export class BufferedEncoder {
             this.encodeUnknown(value);
         }
     }
-    encodeStringDefinition(data, entry) {
-        this.writer.writeByte(TAGS.SP_STRING_DEF);
-        this.encodeNumber(entry.index);
-        this.encodeString(data);
-    }
-    encodeStringReference(entry) {
+    encodeStringReference(index) {
         this.writer.writeByte(TAGS.SP_STRING_REF);
-        this.encodeNumber(entry.index);
+        this.encodeNumber(index);
     }
     constructor(writer) {
         this.writer = writer;
@@ -373,26 +354,27 @@ export class BufferedEncoder {
     Encode(data) {
         this.shapes = [];
         this.shapeIndices.clear();
-        this.stringData.clear();
+        this.strings = [];
+        this.stringIndices.clear();
         const shapeCounts = new Map();
+        const stringCounts = new Map();
         const scan = (value) => {
-            if (value === null || value === undefined)
+            //nur interesse an arrays oder records deshalb yeet
+            //auch interesse an strings seit Neustem
+            if (value === null || (this.isPrimitive(value) && typeof value !== "string") || value instanceof Date)
                 return;
-            const type = typeof value;
-            switch (type) {
-                case "object":
-                    if (Array.isArray(value)) {
-                        for (let i = 0; i < value.length; i++)
-                            scan(value[i]);
-                        return;
-                    }
-                    if (Object.getPrototypeOf(value) === Date.prototype)
-                        return;
-                    const shape = JSON.stringify(this.dehydrateToShape(value));
-                    shapeCounts.set(shape, (shapeCounts.get(shape) || 0) + 1);
-                    for (const key of Object.keys(value))
-                        scan(value[key]);
-                    return;
+            if (Array.isArray(value)) {
+                value.forEach(v => scan(v));
+                return;
+            }
+            if (typeof value === "string") {
+                stringCounts.set(value, (stringCounts.get(value) || 0) + 1);
+                return;
+            }
+            if (typeof value === "object") {
+                const shape = JSON.stringify(this.dehydrateToShape(value));
+                shapeCounts.set(shape, (shapeCounts.get(shape) || 0) + 1);
+                Object.values(value).forEach(v => scan(v));
             }
         };
         //erster pass für analyse
@@ -404,6 +386,12 @@ export class BufferedEncoder {
             this.shapeIndices.set(shape, this.shapes.length);
             this.shapes.push(shape);
         }
+        for (const [string, count] of stringCounts) {
+            if (count < 2)
+                continue;
+            this.stringIndices.set(string, this.strings.length);
+            this.strings.push(string);
+        }
         //Write magic
         this.writer.writeByte(GLORP_MAGIC);
         //Compute flags
@@ -411,14 +399,18 @@ export class BufferedEncoder {
         const hasShapes = this.shapes.length > 0;
         if (hasShapes)
             flagsByte |= FlAGS.TAB_SHAPES;
+        const hasStrings = this.strings.length > 0;
+        if (hasStrings)
+            flagsByte |= FlAGS.TAB_STRINGS;
         //write flags byte
         this.writer.writeByte(flagsByte);
         //Encode fitting tables
         if (hasShapes)
             this.encodeArray(this.shapes);
+        if (hasStrings)
+            this.encodeArray(this.strings, false);
         //Encode actual data
         this.encodeUnknown(data);
         return this.writer.finish();
     }
 }
-//# sourceMappingURL=Encoder.js.map

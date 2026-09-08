@@ -1,5 +1,5 @@
-import {ByteBuffer} from "./ByteBuffer";
-import {InvalidArgumentRangeError} from "./Errors";
+import {ByteBuffer} from "./ByteBuffer.js";
+import {InvalidArgumentRangeError} from "./Errors.js";
 
 export class BufferedWriter {
     private buffer: ByteBuffer;
@@ -11,7 +11,7 @@ export class BufferedWriter {
 
     private resizeTo(size: number) {
         const nb = ByteBuffer.alloc(size);
-        this.buffer.copy(nb);
+        this.buffer.copy(nb, 0, 0, this.offset);
 
         this.buffer = nb;
     }
@@ -23,9 +23,7 @@ export class BufferedWriter {
         if (needed <= this.buffer.byteLength)
             return;
 
-        let newSz = this.buffer.byteLength;
-        while (newSz < needed)
-            newSz *= 2;
+        const newSz = Math.max(needed, this.buffer.byteLength > 0 ? this.buffer.byteLength * 2 : 0xff);
 
         this.resizeTo(newSz);
     }

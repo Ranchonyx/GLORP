@@ -8,7 +8,7 @@ import { InvalidBytecodeDecodeError } from "./Util/Errors.js";
 export class Decoder {
     stream;
     shapes = [];
-    stringData = new Map();
+    strings = [];
     constructor(stream) {
         this.stream = stream;
     }
@@ -131,22 +131,16 @@ export class Decoder {
         const record = {};
         for (let i = 0; i < entryCount; i++) {
             const key = this.decodeString();
-            record[key] = this.decodeUnknown();
+            const value = this.decodeUnknown();
+            record[key] = value;
         }
         return record;
-    }
-    decodeStringDefinition() {
-        this.stream.skip(1);
-        const stringDataIndex = this.decodeNumber();
-        const stringDataValue = this.decodeString();
-        this.stringData.set(Number(stringDataIndex), stringDataValue);
-        return stringDataValue;
     }
     decodeStringReference() {
         this.stream.skip(1);
         const { value: index, bytesRead } = decodeNumber(this.stream.peekSlice());
         this.stream.skip(bytesRead);
-        return this.stringData.get(Number(index));
+        return this.strings[Number(index)];
     }
     decodeShapeReference() {
         this.stream.skip(1);
@@ -195,9 +189,6 @@ export class Decoder {
         if (tag === TAGS.SP_SHAPE_REF) {
             return this.decodeShapeReference();
         }
-        if (tag === TAGS.SP_STRING_DEF) {
-            return this.decodeStringDefinition();
-        }
         if (tag === TAGS.SP_STRING_REF) {
             return this.decodeStringReference();
         }
@@ -212,7 +203,8 @@ export class Decoder {
         const flags = this.stream.peekByte();
         this.stream.skip(1);
         const hasShapeTable = (flags & FlAGS.TAB_SHAPES) !== 0;
-        if (hasShapeTable)
+        const hasStringTable = (flags & FlAGS.TAB_STRINGS) !== 0;
+        if (hasShapeTable || hasStringTable)
             if (!(this.stream.peekByte() === TAGS.ARR8 ||
                 this.stream.peekByte() === TAGS.ARR16 ||
                 this.stream.peekByte() === TAGS.ARR24 ||
@@ -225,6 +217,13 @@ export class Decoder {
                 this.shapes.push(JSON.parse(decodedShape));
             }
         }
+        if (hasStringTable) {
+            //Parse shapes
+            const decodedStringArray = this.decodeArray();
+            for (const decodedString of decodedStringArray) {
+                this.strings.push(decodedString);
+            }
+        }
         //Start parsing everything else
         while (!this.stream.eof) {
             const value = this.decodeUnknown();
@@ -235,4 +234,3 @@ export class Decoder {
         return (elements.length > 1 ? elements : elements[0]);
     }
 }
-//# sourceMappingURL=Decoder.js.map

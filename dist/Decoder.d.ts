@@ -2,7 +2,7 @@ import { ByteBufferStream } from "./Util/ByteBufferStream.js";
 export declare class Decoder {
     private stream;
     private shapes;
-    private strings;
+    private stringData;
     constructor(stream: ByteBufferStream);
     private rehydrateShape;
     private decodeNumber;
@@ -11,6 +11,7 @@ export declare class Decoder {
     private decodeAbsence;
     private decodeArray;
     private decodeRecord;
+    private decodeStringDefinition;
     private decodeStringReference;
     private decodeShapeReference;
     private decodeDate;

@@ -53,8 +53,9 @@ export enum TAGS {
     DATE = 0x28,            //Date,
 
     SP_SHAPE_REF = 0x29,    //Reference to a shape
-    SP_STRING_REF = 0x2a,   //Reference to a string
-    SP_RUN = 0x2b           //Indicates a run of elements of the same type
+    SP_STRING_DEF = 0x2a,   //String definition
+    SP_STRING_REF = 0x2b,    //Reference to a string
+    SP_RUN = 0x2c           //Indicates a run of elements of the same type
 }
 
 export enum FlAGS {
@@ -73,3 +74,13 @@ type ValueOrArray<T> = T | ValueOrArray<T>[];
 
 export type ShapeNode = ValueOrArray<string>;
 export type StringifiedShape = string & {};
+
+export enum StringState {
+    UNIQUE,
+    DEFINED
+}
+
+export type StringEntry = {
+    state: StringState;
+    index: number;
+}

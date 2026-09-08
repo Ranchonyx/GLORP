@@ -40,9 +40,7 @@ test("NI", () => {
 });
 
 test("NN", () => {
-    const expected = NaN;
-
-    const encoded = encode(expected);
+    const encoded = encode(NaN);
     const actual = decode(encoded);
 
     assert.ok(Number.isNaN(actual));
@@ -367,6 +365,7 @@ test("Repeated strings", () => {
     ];
 
     const encoded = encode(input);
+    writeFileSync("./out_repeated.hex", encoded);
     const decoded = decode(encoded);
 
     assert.deepStrictEqual(decoded, input);
