@@ -1,36 +1,14 @@
-import {GLORP_MAGIC, ShapeEntry, ShapeNode, SymbolEntry, SymbolState, TAGS} from "./Util/Constants.js";
+import {GLORP_MAGIC, ShapeEntry, SymbolState, TAGS} from "./Util/Constants.js";
 import {InvalidArgumentEncodeError, InvalidArgumentRangeError} from "./Util/Errors.js";
 import {BufferedWriter} from "./Util/BufferedWriter";
 
 export class BufferedEncoder {
-    private stringData = new Map<string, SymbolEntry>();
+    private stringData = new Map<string, number>();
+    private nextStringIndex = 0;
 
     private shapeEntries: ShapeEntry[] = [];
     private lastShapeEntry: ShapeEntry | null = null;
     private nextShapeIndex = 0;
-
-    private dehydrateToShape(input: unknown): ShapeNode {
-        const isRecord = (value: unknown): value is Record<string, unknown> =>
-            typeof value === "object" &&
-            value !== null &&
-            !Array.isArray(value) &&
-            !(value instanceof Date);
-
-        const getNestedKeysAsArrayOfArrays = (obj: Record<string, unknown>): ShapeNode => {
-            const keysArray: ShapeNode[] = [];
-
-            if (typeof obj === "object")
-                for (let key in obj) {
-                    keysArray.push(key);
-                    if (isRecord(obj[key]))
-                        keysArray.push(getNestedKeysAsArrayOfArrays(obj[key] as Record<string, unknown>));
-                }
-
-            return keysArray;
-        }
-
-        return getNestedKeysAsArrayOfArrays(input as Record<string, unknown>);
-    }
 
     private encodeUTF8String(utf8String: string, len: number): void {
         if (len <= 0xff) {
@@ -439,24 +417,27 @@ export class BufferedEncoder {
         this.encodeShapeReference(data, entry as Required<ShapeEntry>);
     }
 
-    private encodeString(data: string) {
-        const entry = this.stringData.get(data);
-        //If we do not have a stringdata entry
-        if (entry === undefined) {
-            //Create it but encode it as a normal string
-            this.stringData.set(data, {index: this.stringData.size, state: SymbolState.UNIQUE});
-            return this.encodeStringUTFOrASCII(data);
-        } else {
-            //If we do have an entry, check state
-            if (entry.state === SymbolState.UNIQUE) {
-                //If it's unique until now, make it defined and encode a string definition
-                entry.state = SymbolState.DEFINED;
-                return this.encodeStringDefinition(data, entry);
-            } else {
-                //If it's already defined, encode a reference
-                return this.encodeStringReference(entry);
-            }
+    private encodeString(data: string): void {
+        const index = this.stringData.get(data);
+
+        if (index === undefined) {
+            this.stringData.set(data, -1);
+            this.encodeStringUTFOrASCII(data);
+            return;
         }
+
+        if (index === -1) {
+            const definedIndex = this.nextStringIndex++;
+            this.stringData.set(data, definedIndex);
+
+            this.writer.writeByte(TAGS.SP_STRING_DEF);
+            this.encodeNumber(definedIndex);
+            this.encodeStringUTFOrASCII(data);
+            return;
+        }
+
+        this.writer.writeByte(TAGS.SP_STRING_REF);
+        this.encodeNumber(index);
     }
 
     private encodeUnknown(data: unknown) {
@@ -501,17 +482,6 @@ export class BufferedEncoder {
         this.encodeShapeValues(data, entry);
     }
 
-    private encodeStringDefinition(data: string, entry: SymbolEntry): void {
-        this.writer.writeByte(TAGS.SP_STRING_DEF);
-        this.encodeNumber(entry.index);
-        this.encodeStringUTFOrASCII(data);
-    }
-
-    private encodeStringReference(entry: SymbolEntry): void {
-        this.writer.writeByte(TAGS.SP_STRING_REF);
-        this.encodeNumber(entry.index);
-    }
-
     public constructor(private writer: BufferedWriter) {
     }
 
@@ -519,6 +489,8 @@ export class BufferedEncoder {
         this.writer.reset();
 
         this.stringData.clear();
+        this.nextStringIndex = 0;
+
         this.shapeEntries = [];
         this.lastShapeEntry = null;
         this.nextShapeIndex = 0;

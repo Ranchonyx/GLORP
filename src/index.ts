@@ -7,8 +7,7 @@ import {BufferedWriter} from "./Util/BufferedWriter.js";
  * The **`GLORP`** static class contains static methods for decoding values from and encoding values to the GLORP format
  * */
 export class GLORP {
-    static #writer = new BufferedWriter();
-    static #encoder = new BufferedEncoder(this.#writer);
+    static #encoder = new BufferedEncoder(new BufferedWriter());
 
     /**
      * @typeParam T - The expected return type. Not validated at runtime.
@@ -26,9 +25,6 @@ export class GLORP {
      * @param data - The JavaScript value to encode.
      * */
     public static encode(data: unknown): Buffer {
-        const result = this.#encoder.Encode(data);
-        this.#writer.reset();
-
-        return result;
+        return this.#encoder.Encode(data);
     }
 }

@@ -5,7 +5,7 @@ export class BufferedWriter {
     private buffer: ByteBuffer;
     private offset = 0;
 
-    public constructor(initialSize: number = 512) {
+    public constructor(initialSize: number = 1024) {
         this.buffer = ByteBuffer.alloc(initialSize);
     }
 

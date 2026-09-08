@@ -4,7 +4,6 @@ import {test} from "node:test";
 import * as assert from "node:assert";
 import {ByteBufferStream} from "../src/Util/ByteBufferStream.js";
 import {BufferedWriter} from "../src/Util/BufferedWriter";
-import {writeFileSync} from "node:fs";
 
 function encode(value: unknown): Buffer {
     return new BufferedEncoder(new BufferedWriter()).Encode(value);
@@ -318,7 +317,6 @@ test("Repeated record shapes", () => {
     ];
 
     const encoded = encode(input);
-    writeFileSync("encoded", encoded);
     const decoded = decode(encoded);
 
     assert.deepStrictEqual(decoded, input);
@@ -350,8 +348,6 @@ test("Repeated nested record shapes", () => {
     ];
 
     const encoded = encode(input);
-    writeFileSync("encoded.hex", encoded);
-
     const decoded = decode(encoded);
 
     assert.deepStrictEqual(decoded, input);
@@ -367,7 +363,6 @@ test("Repeated strings", () => {
     ];
 
     const encoded = encode(input);
-    writeFileSync("./out_repeated.hex", encoded);
     const decoded = decode(encoded);
 
     assert.deepStrictEqual(decoded, input);

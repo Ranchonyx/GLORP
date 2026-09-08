@@ -2,10 +2,10 @@ import { BufferedWriter } from "./Util/BufferedWriter";
 export declare class BufferedEncoder {
     private writer;
     private stringData;
+    private nextStringIndex;
     private shapeEntries;
     private lastShapeEntry;
     private nextShapeIndex;
-    private dehydrateToShape;
     private encodeUTF8String;
     private encodeASCIIString;
     private encodeStringUTFOrASCII;

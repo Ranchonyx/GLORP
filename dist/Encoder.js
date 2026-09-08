@@ -3,26 +3,10 @@ import { InvalidArgumentEncodeError, InvalidArgumentRangeError } from "./Util/Er
 export class BufferedEncoder {
     writer;
     stringData = new Map();
+    nextStringIndex = 0;
     shapeEntries = [];
     lastShapeEntry = null;
     nextShapeIndex = 0;
-    dehydrateToShape(input) {
-        const isRecord = (value) => typeof value === "object" &&
-            value !== null &&
-            !Array.isArray(value) &&
-            !(value instanceof Date);
-        const getNestedKeysAsArrayOfArrays = (obj) => {
-            const keysArray = [];
-            if (typeof obj === "object")
-                for (let key in obj) {
-                    keysArray.push(key);
-                    if (isRecord(obj[key]))
-                        keysArray.push(getNestedKeysAsArrayOfArrays(obj[key]));
-                }
-            return keysArray;
-        };
-        return getNestedKeysAsArrayOfArrays(input);
-    }
     encodeUTF8String(utf8String, len) {
         if (len <= 0xff) {
             this.writer.writeByte(TAGS.STU8);
@@ -350,25 +334,22 @@ export class BufferedEncoder {
         this.encodeShapeReference(data, entry);
     }
     encodeString(data) {
-        const entry = this.stringData.get(data);
-        //If we do not have a stringdata entry
-        if (entry === undefined) {
-            //Create it but encode it as a normal string
-            this.stringData.set(data, { index: this.stringData.size, state: SymbolState.UNIQUE });
-            return this.encodeStringUTFOrASCII(data);
+        const index = this.stringData.get(data);
+        if (index === undefined) {
+            this.stringData.set(data, -1);
+            this.encodeStringUTFOrASCII(data);
+            return;
         }
-        else {
-            //If we do have an entry, check state
-            if (entry.state === SymbolState.UNIQUE) {
-                //If it's unique until now, make it defined and encode a string definition
-                entry.state = SymbolState.DEFINED;
-                return this.encodeStringDefinition(data, entry);
-            }
-            else {
-                //If it's already defined, encode a reference
-                return this.encodeStringReference(entry);
-            }
+        if (index === -1) {
+            const definedIndex = this.nextStringIndex++;
+            this.stringData.set(data, definedIndex);
+            this.writer.writeByte(TAGS.SP_STRING_DEF);
+            this.encodeNumber(definedIndex);
+            this.encodeStringUTFOrASCII(data);
+            return;
         }
+        this.writer.writeByte(TAGS.SP_STRING_REF);
+        this.encodeNumber(index);
     }
     encodeUnknown(data) {
         //Check if we need to encode a primitive first
@@ -417,6 +398,7 @@ export class BufferedEncoder {
     Encode(data) {
         this.writer.reset();
         this.stringData.clear();
+        this.nextStringIndex = 0;
         this.shapeEntries = [];
         this.lastShapeEntry = null;
         this.nextShapeIndex = 0;
