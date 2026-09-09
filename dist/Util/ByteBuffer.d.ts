@@ -1,8 +1,33 @@
-export declare class ByteBuffer extends Buffer {
+export type ByteBufferEncoding = "utf8" | "utf-8" | "ascii";
+export declare class ByteBuffer {
+    private bytes;
+    private readonly view;
+    private readonly encoder;
+    private readonly decoder;
+    constructor(bytes: Uint8Array);
+    static alloc(size: number): ByteBuffer;
+    static from(bytes: Uint8Array): ByteBuffer;
+    copy(target: ByteBuffer, targetStart?: number | undefined, sourceStart?: number | undefined, sourceEnd?: number | undefined): number;
+    get byteLength(): number;
+    get buffer(): Uint8Array<ArrayBufferLike>;
+    read(offset: number, length: number, encoding: ByteBufferEncoding): string;
+    write(string: string, offset: number, encoding: ByteBufferEncoding): number;
+    writeUInt8(value: number, offset?: number): number;
+    writeInt8(value: number, offset?: number): number;
+    readUInt8(offset?: number): number;
+    readInt8(offset?: number): number;
+    writeUInt16BE(value: number, offset?: number): number;
+    writeInt16BE(value: number, offset?: number): number;
+    readUInt16BE(offset?: number): number;
+    readInt16BE(offset?: number): number;
     writeUInt24BE(value: number, offset?: number): number;
     writeInt24BE(value: number, offset?: number): number;
     readUInt24BE(offset?: number): number;
     readInt24BE(offset?: number): number;
+    writeUInt32BE(value: number, offset?: number): number;
+    writeInt32BE(value: number, offset?: number): number;
+    readUInt32BE(offset?: number): number;
+    readInt32BE(offset?: number): number;
     writeUInt48BE(value: number, offset?: number): number;
     writeInt48BE(value: number, offset?: number): number;
     readUInt48BE(offset?: number): number;
@@ -11,11 +36,15 @@ export declare class ByteBuffer extends Buffer {
     writeBigInt56BE(value: bigint, offset?: number): number;
     readBigUInt56BE(offset?: number): bigint;
     readBigInt56BE(offset?: number): bigint;
+    writeBigUInt64BE(value: bigint, offset?: number): number;
+    writeBigInt64BE(value: bigint, offset?: number): number;
+    readBigUInt64BE(offset?: number): bigint;
+    readBigInt64BE(offset?: number): bigint;
     writeInt56BE(value: number, offset?: number): number;
     readInt56BE(offset?: number): number;
-    subarray(start?: number, end?: number): ByteBuffer;
-    private static promote;
-    static fromBuffer(buffer: Buffer): ByteBuffer;
-    static alloc(size: number): ByteBuffer;
+    writeFloatBE(value: number, offset?: number): number;
+    readFloatBE(offset?: number): number;
+    writeDoubleBE(value: number, offset?: number): number;
+    readDoubleBE(offset?: number): number;
 }
 //# sourceMappingURL=ByteBuffer.d.ts.map

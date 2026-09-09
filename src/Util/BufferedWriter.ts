@@ -1,11 +1,11 @@
-import {ByteBuffer} from "./ByteBuffer.js";
+import {ByteBuffer, ByteBufferEncoding} from "./ByteBuffer.js";
 import {InvalidArgumentRangeError} from "./Errors.js";
 
 export class BufferedWriter {
     private buffer: ByteBuffer;
     private offset = 0;
 
-    public constructor(initialSize: number = 1024) {
+    public constructor(initialSize: number) {
         this.buffer = ByteBuffer.alloc(initialSize);
     }
 
@@ -166,10 +166,7 @@ export class BufferedWriter {
 
         this.ensureAtLeast(8);
 
-        this.offset = this.buffer.writeBigUInt64BE(
-            value,
-            this.offset
-        );
+        this.offset = this.buffer.writeBigUInt64BE(value, this.offset);
 
         return this.offset;
     }
@@ -192,10 +189,7 @@ export class BufferedWriter {
 
         this.ensureAtLeast(8);
 
-        this.offset = this.buffer.writeBigInt64BE(
-            value,
-            this.offset
-        );
+        this.offset = this.buffer.writeBigInt64BE(value, this.offset);
 
         return this.offset;
     }
@@ -289,22 +283,22 @@ export class BufferedWriter {
     public writeByte(value: number): number {
         this.ensureAtLeast(1);
 
-        this.buffer[this.offset++] = value;
+        this.buffer.writeUInt8(value, this.offset++);
 
         return this.offset;
     }
 
-    public writeString(value: string, byteLength: number, encoding: BufferEncoding): number {
+    public writeString(value: string, byteLength: number, encoding: ByteBufferEncoding): number {
         this.ensureAtLeast(byteLength);
 
-        const written = this.buffer.write(value, this.offset, byteLength, encoding);
+        const written = this.buffer.write(value, this.offset, encoding);
         this.offset += written;
 
         return this.offset;
     }
 
-    public finish(): ByteBuffer {
-        return this.buffer.subarray(0, this.offset);
+    public finish(): Uint8Array {
+        return this.buffer.buffer.subarray(0, this.offset);
     }
 
     public reset(): void {

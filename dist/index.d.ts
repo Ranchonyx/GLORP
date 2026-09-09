@@ -1,3 +1,6 @@
+export type EncodeOptions = {
+    initialBufferSize?: number;
+};
 /**
  * The **`GLORP`** static class contains static methods for decoding values from and encoding values to the GLORP format
  * */
@@ -7,14 +10,15 @@ export declare class GLORP {
      * @typeParam T - The expected return type. Not validated at runtime.
      * @param buffer - The **`GLORP`**-encoded data to decode.
      * */
-    static decode<T = unknown>(buffer: Buffer): T;
+    static decode<T = unknown>(buffer: Uint8Array): T;
     /**
      * Encodes a supported JavaScript value into the GLORP binary format.
      *
      * Encoded values include numbers, bigints, strings, booleans, null, undefined, arrays, plain objects and Date intances.
      * Functions, symbols, classes and instances of custom classes are not supported.
      * @param data - The JavaScript value to encode.
+     * @param options - Optionally, an options object for the encoding process, see EncodeOptions
      * */
-    static encode(data: unknown): Buffer;
+    static encode(data: unknown, options?: EncodeOptions): Uint8Array;
 }
 //# sourceMappingURL=index.d.ts.map

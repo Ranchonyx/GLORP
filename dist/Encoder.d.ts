@@ -29,6 +29,6 @@ export declare class BufferedEncoder {
     private encodeShapeDefinition;
     private encodeShapeReference;
     constructor(writer: BufferedWriter);
-    Encode(data: unknown): Buffer;
+    Encode(data: unknown): Uint8Array;
 }
 //# sourceMappingURL=Encoder.d.ts.map

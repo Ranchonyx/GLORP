@@ -1,14 +1,123 @@
 import {InvalidArgumentRangeError} from "./Errors.js";
 
-export class ByteBuffer extends Buffer {
+export type ByteBufferEncoding = "utf8" | "utf-8" | "ascii";
+
+export class ByteBuffer {
+    private readonly view: DataView;
+    private readonly encoder = new TextEncoder();
+    private readonly decoder = new TextDecoder();
+
+    public constructor(private bytes: Uint8Array) {
+        this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    }
+
+    public static alloc(size: number): ByteBuffer {
+        return new ByteBuffer(new Uint8Array(size));
+    }
+
+    public static from(bytes: Uint8Array): ByteBuffer {
+        return new ByteBuffer(bytes);
+    }
+
+    public copy(target: ByteBuffer, targetStart?: number | undefined, sourceStart?: number | undefined, sourceEnd?: number | undefined): number {
+        const src = this.bytes.subarray(sourceStart, sourceEnd);
+        target.bytes.set(src, targetStart);
+        return src.byteLength;
+    }
+
+    public get byteLength(): number {
+        return this.bytes.byteLength;
+    }
+
+    public get buffer() {
+        return this.bytes;
+    }
+
+    public read(offset: number, length: number, encoding: ByteBufferEncoding): string {
+        const slice = this.buffer.subarray(offset, offset + length);
+        switch (encoding) {
+            case "utf8":
+            case "utf-8":
+            case "ascii":
+                return this.decoder.decode(slice);
+            default:
+                throw new Error(`Unsupported encoding.`);
+        }
+    }
+
+    public write(string: string, offset: number, encoding: ByteBufferEncoding): number {
+        let encoded: Uint8Array | null = null;
+        switch (encoding) {
+            case "utf8":
+            case "utf-8":
+                encoded = this.encoder.encode(string);
+                break;
+            case "ascii":
+                encoded = new Uint8Array(string.length);
+                for (let i = 0; i < string.length; i++) {
+                    const code = string.charCodeAt(i);
+                    if (code > 0x7F)
+                        throw new Error(`Cannot ASCII-encode char '${string[i]}'!`);
+
+                    encoded[i] = code;
+                }
+                break;
+            default:
+                throw new Error("Unsupported encoding");
+        }
+
+        this.bytes.set(encoded, offset);
+        return encoded.byteLength;
+    }
+
+    public writeUInt8(value: number, offset: number = 0): number {
+        this.view.setUint8(offset, value);
+
+        return offset + 1;
+    }
+
+    public writeInt8(value: number, offset: number = 0): number {
+        this.view.setInt8(offset, value);
+
+        return offset + 1;
+    }
+
+    public readUInt8(offset: number = 0): number {
+        return this.view.getUint8(offset);
+    }
+
+    public readInt8(offset: number = 0): number {
+        return this.view.getInt8(offset);
+    }
+
+    public writeUInt16BE(value: number, offset: number = 0): number {
+        this.view.setUint16(offset, value);
+
+        return offset + 2;
+    }
+
+    public writeInt16BE(value: number, offset: number = 0): number {
+        this.view.setInt16(offset, value);
+
+        return offset + 2;
+    }
+
+    public readUInt16BE(offset: number = 0): number {
+        return this.view.getUint16(offset);
+    }
+
+    public readInt16BE(offset: number = 0): number {
+        return this.view.getInt16(offset);
+    }
+
     public writeUInt24BE(value: number, offset: number = 0): number {
         if (value < 0 || value > 0xFFFFFF) {
             throw new InvalidArgumentRangeError(value, 0xFFFFFF);
         }
 
-        this[offset] = (value >>> 16) & 0xFF;
-        this[offset + 1] = (value >>> 8) & 0xFF;
-        this[offset + 2] = value & 0xFF;
+        this.bytes[offset] = (value >>> 16) & 0xFF;
+        this.bytes[offset + 1] = (value >>> 8) & 0xFF;
+        this.bytes[offset + 2] = value & 0xFF;
 
         return offset + 3;
     }
@@ -27,9 +136,9 @@ export class ByteBuffer extends Buffer {
 
     public readUInt24BE(offset: number = 0): number {
         return (
-            (this[offset] << 16) |
-            (this[offset + 1] << 8) |
-            this[offset + 2]
+            (this.bytes[offset] << 16) |
+            (this.bytes[offset + 1] << 8) |
+            this.bytes[offset + 2]
         );
     }
 
@@ -41,17 +150,37 @@ export class ByteBuffer extends Buffer {
             : value;
     }
 
+    public writeUInt32BE(value: number, offset: number = 0): number {
+        this.view.setUint32(offset, value);
+
+        return offset + 4;
+    }
+
+    public writeInt32BE(value: number, offset: number = 0): number {
+        this.view.setInt32(offset, value);
+
+        return offset + 4;
+    }
+
+    public readUInt32BE(offset: number = 0): number {
+        return this.view.getUint32(offset);
+    }
+
+    public readInt32BE(offset: number = 0): number {
+        return this.view.getInt32(offset);
+    }
+
     public writeUInt48BE(value: number, offset: number = 0): number {
         if (value < 0 || value > 0xFFFFFFFFFFFF) {
             throw new InvalidArgumentRangeError(value, 0xFFFFFFFFFFFF);
         }
 
-        this[offset] = Math.floor(value / 0x10000000000) & 0xFF;
-        this[offset + 1] = Math.floor(value / 0x100000000) & 0xFF;
-        this[offset + 2] = Math.floor(value / 0x1000000) & 0xFF;
-        this[offset + 3] = Math.floor(value / 0x10000) & 0xFF;
-        this[offset + 4] = Math.floor(value / 0x100) & 0xFF;
-        this[offset + 5] = value & 0xFF;
+        this.bytes[offset] = Math.floor(value / 0x10000000000) & 0xFF;
+        this.bytes[offset + 1] = Math.floor(value / 0x100000000) & 0xFF;
+        this.bytes[offset + 2] = Math.floor(value / 0x1000000) & 0xFF;
+        this.bytes[offset + 3] = Math.floor(value / 0x10000) & 0xFF;
+        this.bytes[offset + 4] = Math.floor(value / 0x100) & 0xFF;
+        this.bytes[offset + 5] = value & 0xFF;
 
         return offset + 6;
     }
@@ -70,12 +199,12 @@ export class ByteBuffer extends Buffer {
 
     public readUInt48BE(offset: number = 0): number {
         return (
-            this[offset] * 0x10000000000 +
-            this[offset + 1] * 0x100000000 +
-            this[offset + 2] * 0x1000000 +
-            this[offset + 3] * 0x10000 +
-            this[offset + 4] * 0x100 +
-            this[offset + 5]
+            this.bytes[offset] * 0x10000000000 +
+            this.bytes[offset + 1] * 0x100000000 +
+            this.bytes[offset + 2] * 0x1000000 +
+            this.bytes[offset + 3] * 0x10000 +
+            this.bytes[offset + 4] * 0x100 +
+            this.bytes[offset + 5]
         );
     }
 
@@ -92,7 +221,7 @@ export class ByteBuffer extends Buffer {
             throw new InvalidArgumentRangeError(value, 0xFF_FF_FF_FF_FF_FF_FFn, 0n);
 
         for (let i = 6; i >= 0; i--) {
-            this[offset + i] = Number(value & 0xFFn);
+            this.bytes[offset + i] = Number(value & 0xFFn);
             value >>= 8n;
         }
 
@@ -117,7 +246,7 @@ export class ByteBuffer extends Buffer {
         let value = 0n;
 
         for (let i = 0; i < 7; i++) {
-            value = (value << 8n) | BigInt(this[offset + i]);
+            value = (value << 8n) | BigInt(this.bytes[offset + i]);
         }
 
         return value;
@@ -129,6 +258,48 @@ export class ByteBuffer extends Buffer {
         return value & 0x80_00_00_00_00_00_00n
             ? value - 0x1_00_00_00_00_00_00_00n
             : value;
+    }
+
+    public writeBigUInt64BE(value: bigint, offset: number = 0): number {
+        if (
+            value < 0n ||
+            value > 0xFF_FF_FF_FF_FF_FF_FF_FFn
+        ) {
+            throw new InvalidArgumentRangeError(
+                value,
+                0xFF_FF_FF_FF_FF_FF_FF_FFn,
+                0n
+            );
+        }
+
+        this.view.setBigUint64(offset, value, false);
+
+        return offset + 8;
+    }
+
+    public writeBigInt64BE(value: bigint, offset: number = 0): number {
+        if (
+            value < -0x80_00_00_00_00_00_00_00n ||
+            value > 0x7F_FF_FF_FF_FF_FF_FF_FFn
+        ) {
+            throw new InvalidArgumentRangeError(
+                value,
+                0x7F_FF_FF_FF_FF_FF_FF_FFn,
+                -0x80_00_00_00_00_00_00_00n
+            );
+        }
+
+        this.view.setBigInt64(offset, value, false);
+
+        return offset + 8;
+    }
+
+    public readBigUInt64BE(offset: number = 0): bigint {
+        return this.view.getBigUint64(offset, false);
+    }
+
+    public readBigInt64BE(offset: number = 0): bigint {
+        return this.view.getBigInt64(offset, false);
     }
 
     public writeInt56BE(value: number, offset: number = 0): number {
@@ -149,26 +320,21 @@ export class ByteBuffer extends Buffer {
         return number;
     }
 
-    public subarray(start?: number, end?: number): ByteBuffer {
-        const subarray = super.subarray(start, end);
-        return ByteBuffer.promote(subarray);
+    public writeFloatBE(value: number, offset: number = 0): number {
+        this.view.setFloat32(offset, value);
+        return offset + 4;
     }
 
-    private static promote(buffer: Buffer): ByteBuffer {
-        Object.setPrototypeOf(buffer, ByteBuffer.prototype);
-
-        return buffer as ByteBuffer;
+    public readFloatBE(offset: number = 0): number {
+        return this.view.getFloat32(offset);
     }
 
-    public static fromBuffer(buffer: Buffer): ByteBuffer {
-        const newBuffer = ByteBuffer.alloc(buffer.byteLength);
-        buffer.copy(newBuffer);
-
-        return this.promote(newBuffer);
+    public writeDoubleBE(value: number, offset: number = 0) {
+        this.view.setFloat64(offset, value);
+        return offset + 8;
     }
 
-    public static alloc(size: number): ByteBuffer {
-        const buffer = Buffer.allocUnsafe(size);
-        return this.promote(buffer);
+    public readDoubleBE(offset: number = 0): number {
+        return this.view.getFloat64(offset);
     }
 }

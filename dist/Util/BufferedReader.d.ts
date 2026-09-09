@@ -1,9 +1,8 @@
-import { ByteBuffer } from "./ByteBuffer.js";
+import { ByteBuffer, ByteBufferEncoding } from "./ByteBuffer.js";
 export declare class BufferedReader {
-    private readonly buffer;
+    readonly buffer: ByteBuffer;
     private offset;
     constructor(buffer: ByteBuffer);
-    get position(): number;
     get remaining(): number;
     get eof(): boolean;
     private ensureAvailable;
@@ -27,8 +26,7 @@ export declare class BufferedReader {
     readBigInt64BE(): bigint;
     readFloatBE(): number;
     readDoubleBE(): number;
-    readString(byteLength: number, encoding: BufferEncoding): string;
+    readString(byteLength: number, encoding: ByteBufferEncoding): string;
     skip(byteLength: number): void;
-    reset(): void;
 }
 //# sourceMappingURL=BufferedReader.d.ts.map

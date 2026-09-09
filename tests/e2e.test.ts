@@ -1,17 +1,17 @@
-import {BufferedEncoder} from "../src/Encoder.js";
-import {BufferedDecoder} from "../src/Decoder.js"
 import {test} from "node:test";
 import * as assert from "node:assert";
-import {BufferedWriter} from "../src/Util/BufferedWriter";
-import {BufferedReader} from "../src/Util/BufferedReader";
-import {ByteBuffer} from "../src/Util/ByteBuffer";
+import {BufferedEncoder} from "../src/Encoder.js";
+import {BufferedDecoder} from "../src/Decoder.js"
+import {BufferedWriter} from "../src/Util/BufferedWriter.js";
+import {BufferedReader} from "../src/Util/BufferedReader.js";
+import {ByteBuffer} from "../src/Util/ByteBuffer.js";
 
-function encode(value: unknown): Buffer {
-    return new BufferedEncoder(new BufferedWriter()).Encode(value);
+function encode(value: unknown): Uint8Array {
+    return new BufferedEncoder(new BufferedWriter(1024)).Encode(value);
 }
 
-function decode(buffer: Buffer): unknown {
-    return new BufferedDecoder(new BufferedReader(ByteBuffer.fromBuffer(buffer))).Decode();
+function decode(buffer: Uint8Array): unknown {
+    return new BufferedDecoder(new BufferedReader(ByteBuffer.from(buffer))).Decode();
 }
 
 function expectRoundTrip(expected: unknown) {

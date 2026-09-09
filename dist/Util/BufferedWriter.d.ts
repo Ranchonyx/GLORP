@@ -1,8 +1,8 @@
-import { ByteBuffer } from "./ByteBuffer.js";
+import { ByteBufferEncoding } from "./ByteBuffer.js";
 export declare class BufferedWriter {
     private buffer;
     private offset;
-    constructor(initialSize?: number);
+    constructor(initialSize: number);
     private resizeTo;
     private ensureAtLeast;
     writeUInt24BE(value: number): number;
@@ -32,8 +32,8 @@ export declare class BufferedWriter {
     writeFloatBE(value: number): number;
     writeDoubleBE(value: number): number;
     writeByte(value: number): number;
-    writeString(value: string, byteLength: number, encoding: BufferEncoding): number;
-    finish(): ByteBuffer;
+    writeString(value: string, byteLength: number, encoding: ByteBufferEncoding): number;
+    finish(): Uint8Array;
     reset(): void;
 }
 //# sourceMappingURL=BufferedWriter.d.ts.map

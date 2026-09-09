@@ -4,18 +4,23 @@ import {BufferedWriter} from "./Util/BufferedWriter.js";
 import {BufferedReader} from "./Util/BufferedReader.js";
 import {ByteBuffer} from "./Util/ByteBuffer.js";
 
+export type EncodeOptions = {
+    initialBufferSize?: number;
+};
+
 /**
  * The **`GLORP`** static class contains static methods for decoding values from and encoding values to the GLORP format
  * */
 export class GLORP {
-    static #encoder = new BufferedEncoder(new BufferedWriter());
+    static #writer: BufferedWriter | null = null;
+    static #encoder: BufferedEncoder | null = null;
 
     /**
      * @typeParam T - The expected return type. Not validated at runtime.
      * @param buffer - The **`GLORP`**-encoded data to decode.
      * */
-    public static decode<T = unknown>(buffer: Buffer): T {
-        return new BufferedDecoder(new BufferedReader(ByteBuffer.fromBuffer(buffer))).Decode<T>();
+    public static decode<T = unknown>(buffer: Uint8Array): T {
+        return new BufferedDecoder(new BufferedReader(ByteBuffer.from(buffer))).Decode<T>();
     }
 
     /**
@@ -24,8 +29,15 @@ export class GLORP {
      * Encoded values include numbers, bigints, strings, booleans, null, undefined, arrays, plain objects and Date intances.
      * Functions, symbols, classes and instances of custom classes are not supported.
      * @param data - The JavaScript value to encode.
+     * @param options - Optionally, an options object for the encoding process, see EncodeOptions
      * */
-    public static encode(data: unknown): Buffer {
+    public static encode(data: unknown, options?: EncodeOptions): Uint8Array {
+        if (!this.#writer)
+            this.#writer = new BufferedWriter(options?.initialBufferSize || 1024);
+
+        if (!this.#encoder)
+            this.#encoder = new BufferedEncoder(this.#writer);
+
         return this.#encoder.Encode(data);
     }
 }

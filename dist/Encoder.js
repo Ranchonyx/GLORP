@@ -114,8 +114,8 @@ export class BufferedEncoder {
                 this.writer.writeUInt48BE(positiveInteger);
                 return;
             }
-            this.writer.writeByte(TAGS.UBI);
-            this.writer.writeBigUInt64BE(BigInt(positiveInteger));
+            this.writer.writeByte(TAGS.U56);
+            this.writer.writeBigUInt56BE(BigInt(positiveInteger));
         };
         const encodeNegativeInteger = (negativeInteger) => {
             if (typeof negativeInteger === "bigint") {
@@ -148,8 +148,8 @@ export class BufferedEncoder {
                 this.writer.writeInt48BE(negativeInteger);
                 return;
             }
-            this.writer.writeByte(TAGS.SBI);
-            this.writer.writeBigInt64BE(BigInt(negativeInteger));
+            this.writer.writeByte(TAGS.S56);
+            this.writer.writeBigInt56BE(BigInt(negativeInteger));
         };
         const sign = this._sign(integer);
         if (sign === 1 || sign === 0)

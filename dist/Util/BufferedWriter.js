@@ -3,7 +3,7 @@ import { InvalidArgumentRangeError } from "./Errors.js";
 export class BufferedWriter {
     buffer;
     offset = 0;
-    constructor(initialSize = 1024) {
+    constructor(initialSize) {
         this.buffer = ByteBuffer.alloc(initialSize);
     }
     resizeTo(size) {
@@ -161,17 +161,17 @@ export class BufferedWriter {
     }
     writeByte(value) {
         this.ensureAtLeast(1);
-        this.buffer[this.offset++] = value;
+        this.buffer.writeUInt8(value, this.offset++);
         return this.offset;
     }
     writeString(value, byteLength, encoding) {
         this.ensureAtLeast(byteLength);
-        const written = this.buffer.write(value, this.offset, byteLength, encoding);
+        const written = this.buffer.write(value, this.offset, encoding);
         this.offset += written;
         return this.offset;
     }
     finish() {
-        return this.buffer.subarray(0, this.offset);
+        return this.buffer.buffer.subarray(0, this.offset);
     }
     reset() {
         this.offset = 0;

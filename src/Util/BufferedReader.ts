@@ -1,29 +1,22 @@
-import {ByteBuffer} from "./ByteBuffer.js";
+import {ByteBuffer, ByteBufferEncoding} from "./ByteBuffer.js";
 
 export class BufferedReader {
     private offset = 0;
 
-    public constructor(private readonly buffer: ByteBuffer) {
-    }
-
-    public get position(): number {
-        return this.offset;
+    public constructor(public readonly buffer: ByteBuffer) {
     }
 
     public get remaining(): number {
-        return this.buffer.length - this.offset;
+        return this.buffer.byteLength - this.offset;
     }
 
     public get eof(): boolean {
-        return this.offset === this.buffer.length;
+        return this.offset === this.buffer.byteLength;
     }
 
     private ensureAvailable(size: number): void {
         if (size > this.remaining)
-            throw new RangeError(
-                `Unexpected end of stream at offset ${this.offset}: ` +
-                `need ${size} bytes, have ${this.remaining}`
-            );
+            throw new RangeError(`Unexpected end of stream at offset ${this.offset}: ` + `need ${size} bytes, have ${this.remaining}`);
     }
 
     private validateSize(size: number): void {
@@ -33,12 +26,12 @@ export class BufferedReader {
 
     public peekByte(): number {
         this.ensureAvailable(1);
-        return this.buffer[this.offset];
+        return this.buffer.readUInt8(this.offset);
     }
 
     public readByte(): number {
         this.ensureAvailable(1);
-        return this.buffer[this.offset++];
+        return this.buffer.readUInt8(this.offset++);
     }
 
     public readUInt8(): number {
@@ -159,13 +152,14 @@ export class BufferedReader {
 
     public readString(
         byteLength: number,
-        encoding: BufferEncoding
+        encoding: ByteBufferEncoding
     ): string {
         this.validateSize(byteLength);
         this.ensureAvailable(byteLength);
 
         const end = this.offset + byteLength;
-        const value = this.buffer.toString(encoding, this.offset, end);
+
+        const value = this.buffer.read(this.offset, byteLength, encoding);
         this.offset = end;
 
         return value;
@@ -175,9 +169,5 @@ export class BufferedReader {
         this.validateSize(byteLength);
         this.ensureAvailable(byteLength);
         this.offset += byteLength;
-    }
-
-    public reset(): void {
-        this.offset = 0;
     }
 }

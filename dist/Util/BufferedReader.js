@@ -4,19 +4,15 @@ export class BufferedReader {
     constructor(buffer) {
         this.buffer = buffer;
     }
-    get position() {
-        return this.offset;
-    }
     get remaining() {
-        return this.buffer.length - this.offset;
+        return this.buffer.byteLength - this.offset;
     }
     get eof() {
-        return this.offset === this.buffer.length;
+        return this.offset === this.buffer.byteLength;
     }
     ensureAvailable(size) {
         if (size > this.remaining)
-            throw new RangeError(`Unexpected end of stream at offset ${this.offset}: ` +
-                `need ${size} bytes, have ${this.remaining}`);
+            throw new RangeError(`Unexpected end of stream at offset ${this.offset}: ` + `need ${size} bytes, have ${this.remaining}`);
     }
     validateSize(size) {
         if (!Number.isSafeInteger(size) || size < 0)
@@ -24,11 +20,11 @@ export class BufferedReader {
     }
     peekByte() {
         this.ensureAvailable(1);
-        return this.buffer[this.offset];
+        return this.buffer.readUInt8(this.offset);
     }
     readByte() {
         this.ensureAvailable(1);
-        return this.buffer[this.offset++];
+        return this.buffer.readUInt8(this.offset++);
     }
     readUInt8() {
         return this.readByte();
@@ -133,7 +129,7 @@ export class BufferedReader {
         this.validateSize(byteLength);
         this.ensureAvailable(byteLength);
         const end = this.offset + byteLength;
-        const value = this.buffer.toString(encoding, this.offset, end);
+        const value = this.buffer.read(this.offset, byteLength, encoding);
         this.offset = end;
         return value;
     }
@@ -141,9 +137,6 @@ export class BufferedReader {
         this.validateSize(byteLength);
         this.ensureAvailable(byteLength);
         this.offset += byteLength;
-    }
-    reset() {
-        this.offset = 0;
     }
 }
 //# sourceMappingURL=BufferedReader.js.map

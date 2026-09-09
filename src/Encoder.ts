@@ -143,8 +143,8 @@ export class BufferedEncoder {
                 return;
             }
 
-            this.writer.writeByte(TAGS.UBI);
-            this.writer.writeBigUInt64BE(BigInt(positiveInteger));
+            this.writer.writeByte(TAGS.U56);
+            this.writer.writeBigUInt56BE(BigInt(positiveInteger));
         }
 
         const encodeNegativeInteger = (negativeInteger: number | bigint) => {
@@ -184,8 +184,8 @@ export class BufferedEncoder {
                 return;
             }
 
-            this.writer.writeByte(TAGS.SBI);
-            this.writer.writeBigInt64BE(BigInt(negativeInteger));
+            this.writer.writeByte(TAGS.S56);
+            this.writer.writeBigInt56BE(BigInt(negativeInteger));
         }
 
         const sign = this._sign(integer);
@@ -485,7 +485,7 @@ export class BufferedEncoder {
     public constructor(private writer: BufferedWriter) {
     }
 
-    public Encode(data: unknown): Buffer {
+    public Encode(data: unknown): Uint8Array {
         this.writer.reset();
 
         this.stringData.clear();

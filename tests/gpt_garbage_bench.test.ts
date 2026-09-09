@@ -65,7 +65,7 @@ test("GLORP vs JSON vs MessagePack — repeated users", () => {
     const warmupIterations = 100;
 
     // Copy once so decoder input remains independent of writer reuse.
-    const glorpBytes = Buffer.from(GLORP.encode(users));
+    const glorpBytes = GLORP.encode(users);
     const jsonString = JSON.stringify(users);
     const jsonBytes = Buffer.from(jsonString, "utf8");
     const messagePackBytes = encodeMessagePack(users);
@@ -97,7 +97,7 @@ test("GLORP vs JSON vs MessagePack — repeated users", () => {
         users
     );
 
-    let glorpEncoded: Buffer = glorpBytes;
+    let glorpEncoded: Uint8Array = glorpBytes;
     let jsonEncodedString = jsonString;
     let jsonEncodedBytes: Buffer = jsonBytes;
 
@@ -113,7 +113,7 @@ test("GLORP vs JSON vs MessagePack — repeated users", () => {
             },
             check: () => {
                 assert.ok(
-                    glorpEncoded.equals(glorpBytes),
+                    glorpEncoded.toString() === glorpBytes.toString(),
                     "GLORP encoded bytes changed"
                 );
             },
